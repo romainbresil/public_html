@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Managériale : Accompagner Juliette - Romain Becquart</title>
+    <meta name="description" content="Exemple de Note Managériale, un guide pour le N+1 afin de construire les conditions de la réussite d'un collaborateur en se basant sur son profil unique.">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bleu-turquoise: #7ac0c4;
+            --bleu-marine: #426573;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .brand-primary { color: var(--bleu-turquoise); }
+        .brand-secondary { color: var(--bleu-marine); }
+        .brand-secondary-bg { background-color: var(--bleu-marine); }
+        .content-section h2 { font-size: 1.5rem; font-weight: 700; color: var(--bleu-marine); margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 2px solid var(--bleu-turquoise); padding-bottom: 0.5rem;}
+        .content-section h3 { font-size: 1.25rem; font-weight: 600; color: var(--bleu-marine); margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .content-section p, .content-section ul { margin-bottom: 1rem; line-height: 1.7; }
+        .content-section ul { list-style-position: inside; }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <header class="bg-white sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-3">
+                 <img src="images/logo.png" alt="Logo Romain Becquart" class="w-14 h-14">
+                 <span class="text-xl font-bold brand-secondary hidden sm:block">Romain Becquart</span>
+            </a>
+            <a href="ressources.html" class="text-gray-600 hover:brand-primary transition-colors font-medium">← Retour aux ressources</a>
+        </nav>
+    </header>
+
+    <main class="py-16">
+        <div class="container mx-auto px-6 max-w-3xl">
+            <div class="bg-white p-8 md:p-12 rounded-lg shadow-lg">
+                <h1 class="text-3xl md:text-4xl font-extrabold brand-secondary">Note Managériale d'Accompagnement</h1>
+                <p class="mt-4 text-xl text-gray-600">Juliette</p>
+
+                <div class="mt-8 content-section text-gray-700">
+                    
+                    <div class="space-y-2 mb-8">
+                        <!-- Accordion Item 1: Cadre Éthique -->
+                        <div>
+                            <button class="accordion-header w-full text-left p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex justify-between items-center transition-colors hover:bg-yellow-100 focus:outline-none">
+                                <span class="font-bold text-yellow-800">Cadre Éthique & Légal (RGPD)</span>
+                                <svg class="w-5 h-5 transform transition-transform text-yellow-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div class="accordion-content">
+                                <div class="p-4 pt-2 text-sm text-yellow-700">
+                                    <p>Cette note contient des données personnelles sensibles. Elle a été réalisée sur la base d'échanges avec Juliette et avec son consentement explicite pour cet usage unique. C'est un document de travail confidentiel, destiné exclusivement à Juliette et son manager. Il doit être partagé et validé avec elle. Conformément au RGPD, Juliette dispose d'un droit d'accès, de rectification et de suppression de ces informations. Ce document doit être conservé de manière sécurisée et pour une durée limitée à la collaboration managériale.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accordion Item 2: Finalité -->
+                        <div>
+                            <button class="accordion-header w-full text-left p-4 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center transition-colors hover:bg-blue-100 focus:outline-none">
+                                <span class="font-bold text-blue-800">Finalité de ce Document</span>
+                                <svg class="w-5 h-5 transform transition-transform text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div class="accordion-content">
+                                <div class="p-4 pt-2 text-sm text-blue-700">
+                                    <p>Cette note est un <strong>support de dialogue</strong> pour co-construire une collaboration réussie. Son but n'est pas de figer un profil, mais de fournir des clés de lecture pour que le manager et Juliette puissent, ensemble, créer un environnement de travail où elle exprimera pleinement son potentiel.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accordion Item 3: Note Préliminaire -->
+                        <div>
+                            <button class="accordion-header w-full text-left p-4 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center transition-colors hover:bg-gray-100 focus:outline-none">
+                                <span class="font-bold text-gray-700">Note Préliminaire du Modèle</span>
+                                <svg class="w-5 h-5 transform transition-transform text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div class="accordion-content">
+                                <div class="p-4 pt-2 text-sm italic text-gray-600">
+                                    <p>Le modèle de l'Élan Naturel ne vise ni à catégoriser, ni à juger. Il éclaire des dynamiques naturelles. Chaque "zone d'effort" est la contrepartie d'une grande force, et chaque "comportement refuge" est une stratégie de protection respectable qu'il s'agit de comprendre avec bienveillance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2>1. Clés de lecture pour collaborer avec Juliette</h2>
+                    <h3>Son Mode Opératoire ("Comment") : Le "Créatif"</h3>
+                    <p>Le mode opératoire naturel de Juliette est celui du <strong>Créatif</strong>. Son talent réside dans sa capacité à imaginer des solutions conceptuelles et originales à des problèmes complexes. C'est un profil à très forte dominante <strong>Relationnelle (N)</strong> et <strong>Stratégique (W)</strong>.</p>
+                    <ul>
+                        <li class="flex items-start"><span class="text-green-500 font-bold mr-3">✔</span><span><strong>Ses Zones de Génie :</strong> La pureté de l'idéation. Elle excelle à <strong>diagnostiquer finement</strong> les problèmes, à <strong>simplifier cette complexité</strong> en la modélisant, et à <strong>rendre ses idées accessibles</strong> au plus grand nombre en les expliquant de manière originale. Elle est faite pour le "Pourquoi", beaucoup moins pour le "Comment".</span></li>
+                        <li class="flex items-start"><span class="text-orange-500 font-bold mr-3">Δ</span><span><strong>Ses Zones d'Effort :</strong> La mise en œuvre concrète et le respect des cadres imposés. Contrepartie naturelle de sa force créative, les tâches routinières ou très procédurales sont une source d'épuisement pour elle (faiblesse en <strong>Structurel - S</strong> et <strong>Opérationnel - E</strong>).</span></li>
+                    </ul>
+
+                    <h3>Ses Moteurs ("Pourquoi") : Le Désir de Savoir (pour la Liberté)</h3>
+                    <p>Juliette est animée par un profond <strong>Désir de Savoir</strong> dans sa version intérieure. Son élan naît du plaisir d'explorer librement des idées et des situations. Sa peur fondamentale est la <strong>contrainte</strong> : le sentiment d'être piégée dans un cadre qui l'empêche de réfléchir ou de questionner.</p>
+                     <ul>
+                         <li><strong>Ce qui la motive :</strong> L'autonomie intellectuelle, un problème complexe à résoudre, la liberté d'explorer des pistes non conventionnelles, le sentiment d'avoir toujours une "porte de sortie".</li>
+                         <li><strong>Ce qui la démotive :</strong> Le micro-management, les plans d'action trop détaillés, les règles rigides et le manque de flexibilité.</li>
+                    </ul>
+                    
+                    <h3>Ses Cibles de Motivation ("Où") : L'Individuel et le Collectif</h3>
+                     <p>Son énergie créative se déploie vers deux domaines :</p>
+                    <ul>
+                         <li><strong>Cible Primaire : L'Individuel.</strong> Elle cherche à avoir un impact sur son interlocuteur du moment (one-to-one), à allumer une lumière dans son esprit à travers une idée originale ou une nouvelle perspective.</li>
+                         <li><strong>Cible Secondaire : Le Collectif.</strong> Elle utilise ensuite ces idées pour inspirer un groupe et l'ouvrir à de nouvelles façons de penser, contribuant ainsi à l'intelligence collective.</li>
+                    </ul>
+
+                    <h3>Exploratrice inspirante des nouveaux possibles</h3>
+                    <p>Juliette incarne une <strong>créativité joyeuse</strong>, portée par le désir d’ouvrir des chemins non balisés. Elle mobilise son imagination pour connecter les idées, les personnes et les possibles avec une énergie communicative pour solutionner les problèmes à la racine. Sa présence stimule l’enthousiasme collectif, son intuition capte les dynamiques émergentes. Elle agit avec liberté, sans renier l’impact de ses choix. Portée par son élan individuel et sa sensibilité sociale, elle fédère autour de visions nouvelles, sans craindre de sortir des cadres. Dans cet espace aligné, elle devient <strong>catalyseuse de mouvement</strong> et d'amélioration, donneuse de souffle et d’élan collectif.</p>
+
+                    <h3>Fuyante brillante sous pression intérieure</h3>
+                    <p>Lorsque sa peur de la contrainte est activée, Juliette peut inconsciemment mettre en place des stratégies de protection. Juliette brille par ses idées, mais peut <strong>s’enfermer dans un trop-plein de stimulations</strong>. Quand elle doute de sa place ou de sa légitimité, elle surinvestit l’action, multiplie les projets ou se dilue dans des possibles théoriques. Le lien aux autres devient alors plus stratégique qu’authentique. Sa pensée s’accélère, sa lucidité baisse. Elle peut éviter les décisions lourdes ou les tensions interpersonnelles par esquive. Sous stress, elle <strong>défend sa liberté au détriment de la clarté</strong>, s’isole ou se disperse, tout en donnant l’illusion d’une maîtrise créative intacte.</p>
+
+                    <h2>2. Clés Managériales pour sa Réussite</h2>
+                    <h3>Les Besoins Fondamentaux de Juliette</h3>
+                     <p>Pour que Juliette soit dans sa zone de talent, son manager doit lui fournir :</p>
+                    <ul class="list-disc list-inside pl-2">
+                        <li><strong>Un Problème, pas un Plan :</strong> Donnez-lui une problématique stratégique complexe et la liberté de trouver la solution. <em class="text-sm text-gray-500 block">Question à lui poser : "Quelle est la question la plus intéressante à explorer pour toi dans ce projet ?"</em></li>
+                        <li><strong>De l'Autonomie :</strong> C'est son besoin le plus vital. Faites-lui confiance pour organiser son temps et sa méthode de travail. <em class="text-sm text-gray-500 block">Question à lui poser : "De quel niveau de liberté as-tu besoin ici pour être la plus créative ?"</em></li>
+                        <li><strong>Du Temps pour la Maturation :</strong> Elle a besoin de temps pour que ses idées mûrissent. Le "rush" permanent est contre-productif pour elle.</li>
+                        <li><strong>Un Binôme ou un Cadre :</strong> Associez-la à un profil plus opérationnel qui pourra prendre ses concepts et les transformer en plan d'action concret, ou accompagnez-la pour standardiser ses livrables.</li>
+                         <li><strong>Valider ses ressentis :</strong> Ouvrez le dialogue sur son état interne. <em class="text-sm text-gray-500 block">Question à lui poser : "Comment te sens-tu sur ce projet en ce moment ? J'ai l'impression que..."</em></li>
+                    </ul>
+
+                    <h3>Signaux Faibles & Points de Vigilance</h3>
+                    <p>Les comportements suivants ne sont pas des défauts, mais des signaux indiquant que sa peur de la contrainte est activée. Ils sont une invitation au dialogue :</p>
+                     <ul class="list-disc list-inside pl-2 text-red-700">
+                        <li><strong>L'Échappatoire Stratégique :</strong> Elle semble se désengager ou commence à travailler sur des projets parallèles.</li>
+                        <li><strong>La Procrastination Ciblée :</strong> Elle repousse les tâches qui lui semblent purement administratives ou contraignantes.</li>
+                        <li><strong>La Critique du Cadre :</strong> Elle remet en question les règles et les processus pour tester leur flexibilité.</li>
+                        <li><strong>L'Excès de Conceptualisation :</strong> Elle reste dans la modélisation, par peur de s'enfermer dans une seule option.</li>
+                    </ul>
+
+                    <h2>3. Plan d'Accompagnement et Rituels</h2>
+                    <p>L'objectif est de donner à Juliette la liberté dont elle a besoin pour créer, tout en s'assurant que ses idées puissent être utiles et concrétisées par l'organisation.</p>
+
+                    <div class="space-y-4 mt-6">
+                        <div class="p-4 bg-teal-50 border-l-4 border-teal-500">
+                            <h4 class="font-bold text-teal-800">Rituel 1 : Le "Laboratoire d'Idées" (Hebdomadaire, 45 min)</h4>
+                            <p class="text-sm text-teal-700 mt-2">Ce rituel est une plateforme pour sa zone de génie. C'est un point de brainstorming libre où elle peut présenter ses explorations sans pression de résultat immédiat. Cela nourrit son besoin de liberté intellectuelle. <strong class="block text-xs">Le format précis est à co-construire avec elle.</strong></p>
+                            <p class="text-xs text-teal-600 mt-1"><strong>Ordre du jour suggéré :</strong> 1. Partage des explorations en cours / 2. Brainstorming sur un nouveau problème / 3. Identification de l'idée la plus prometteuse à approfondir.</p>
+                        </div>
+                        <div class="p-4 bg-teal-50 border-l-4 border-teal-500">
+                             <h4 class="font-bold text-teal-800">Rituel 2 : Le "Point de Synchronisation & Passage de Relais" (Bimensuel)</h4>
+                            <p class="text-sm text-teal-700 mt-2">Ce rituel est conçu pour sécuriser sa zone d'effort. L'objectif est d'identifier quand une idée est assez mûre pour être transmise ou formalisée. Cela la libère de la contrainte de l'exécution finale et valorise son apport en amont. Cela ne signifie pas qu'elle ne peut pas finaliser un projet, mais la phase de pure exécution la fera passer en "mode confort", moins énergisant pour elle.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-12 text-center p-6 bg-gray-100 rounded-lg">
+                        <p class="font-semibold brand-secondary">Cette note est un point de départ. La clé du succès réside dans un dialogue régulier et transparent sur la base de ces éléments.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="brand-secondary-bg text-white mt-16">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p>&copy; 2025 Romain Becquart. Tous rights réservés.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const accordionHeaders = document.querySelectorAll('.accordion-header');
+
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const activeHeader = document.querySelector('.accordion-header.active');
+                    if (activeHeader && activeHeader !== header) {
+                        activeHeader.classList.remove('active');
+                        activeHeader.nextElementSibling.style.maxHeight = null;
+                        activeHeader.querySelector('svg').style.transform = 'rotate(0deg)';
+                    }
+
+                    header.classList.toggle('active');
+                    const accordionContent = header.nextElementSibling;
+                    const icon = header.querySelector('svg');
+
+                    if (accordionContent.style.maxHeight) {
+                        accordionContent.style.maxHeight = null;
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        accordionContent.style.maxHeight = accordionContent.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

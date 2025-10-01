@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Double Analyse : Heatmap & Motivations - Romain Becquart</title>
+    <meta name="description" content="Découvrez un outil de diagnostic en deux temps pour sécuriser vos recrutements en analysant les 4 intelligences et les cibles de motivation.">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bleu-turquoise: #7ac0c4;
+            --bleu-marine: #426573;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .brand-primary { color: var(--bleu-turquoise); }
+        .brand-secondary { color: var(--bleu-marine); }
+        .brand-secondary-bg { background-color: var(--bleu-marine); }
+        .content-section h2 { font-size: 1.5rem; font-weight: 700; color: var(--bleu-marine); margin-top: 2rem; margin-bottom: 1rem; }
+        .content-section h3 { font-size: 1.25rem; font-weight: 600; color: var(--bleu-marine); margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .content-section p, .content-section ul { margin-bottom: 1rem; line-height: 1.7; }
+        .content-section .feature-list ul { list-style-position: inside; list-style-type: none; padding-left: 0; }
+        .content-section .feature-list li { position: relative; padding-left: 2rem; margin-bottom: 0.5rem; }
+        .content-section .feature-list li::before { content: '✔'; position: absolute; left: 0; color: var(--bleu-turquoise); font-weight: bold; }
+        .content-section blockquote {
+            border-left: 4px solid var(--bleu-turquoise);
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <header class="bg-white sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-3">
+                 <img src="images/logo.png" alt="Logo Romain Becquart" class="w-14 h-14">
+                 <span class="text-xl font-bold brand-secondary hidden sm:block">Romain Becquart</span>
+            </a>
+            <a href="ressources.html" class="text-gray-600 hover:brand-primary transition-colors font-medium">← Retour aux ressources</a>
+        </nav>
+    </header>
+
+    <main class="py-16">
+        <div class="container mx-auto px-6 max-w-3xl">
+            <div class="bg-white p-8 md:p-12 rounded-lg shadow-lg">
+                <h1 class="text-3xl md:text-4xl font-extrabold brand-secondary">La Double Analyse : Un cas concret</h1>
+                <p class="mt-4 text-xl text-gray-600">Comment le croisement du "Comment" et du "Pourquoi" sécurise un recrutement stratégique.</p>
+
+                <div class="mt-8 content-section text-gray-700">
+                    <h2>Le Contexte : Recruter un "Responsable d'Unité"</h2>
+                    <p>Imaginons un recrutement pour un poste de manager de terrain. Deux candidats finalistes se présentent. Le Candidat 2, avec son CV parfait et sa maîtrise à l'oral, semble être le choix évident. Mais est-ce si simple ?</p>
+                    
+                    <h2>Étape 1 : L'Analyse du "Comment" (La Heatmap des Modes Opératoires)</h2>
+                    <p>La première étape consiste à analyser l'alignement opérationnel : la "mécanique" interne du candidat correspond-elle aux exigences du poste ? Pour cela, nous nous appuyons sur 4 formes d'intelligence complémentaires :</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 my-8 feature-list">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="mt-0 font-bold">L'Intelligence Relationnelle (N)</h3>
+                            <p class="text-sm">La capacité à créer du lien, à motiver, à donner du sens et à gérer l'humain.</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                             <h3 class="mt-0 font-bold">L'Intelligence Structurelle (S)</h3>
+                             <p class="text-sm">La capacité à créer de l'ordre, à suivre les processus, à garantir la qualité et la rigueur.</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                             <h3 class="mt-0 font-bold">L'Intelligence Stratégique (W)</h3>
+                             <p class="text-sm">La capacité à prendre du recul, à concevoir des plans, à comprendre le "Pourquoi".</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                             <h3 class="mt-0 font-bold">L'Intelligence Opérationnelle (E)</h3>
+                             <p class="text-sm">La capacité à agir, à être sur le terrain, à mettre en œuvre concrètement le "Comment".</p>
+                        </div>
+                    </div>
+
+                    <h3>Les Intelligences Requises pour ce Poste</h3>
+                    <p>Le poste de Responsable d'Unité est un rôle de pivot. L'analyse montre qu'il requiert principalement :</p>
+                    <ul>
+                        <li>Une <strong>très forte intelligence Relationnelle</strong> pour animer l'équipe et gérer les interfaces.</li>
+                        <li>Une <strong>bonne intelligence Opérationnelle</strong> pour piloter l'activité de terrain.</li>
+                        <li>Une <strong>solide intelligence Stratégique</strong> pour donner du sens et fixer un cap.</li>
+                        <li>Une intelligence <strong>Structurelle</strong> moins dominante, le poste étant plus dans l'adaptation que dans la création de processus.</li>
+                    </ul>
+
+                    <div class="my-8 p-6 bg-gray-50 rounded-lg border">
+                        <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" aria-labelledby="title-heatmap-concrete desc-heatmap-concrete">
+                            <title id="title-heatmap-concrete">Exemple de Double Heatmap pour un poste de Manager</title>
+                            <desc id="desc-heatmap-concrete">Un graphique radar comparant le profil d'un poste (rouge), un candidat aligné (turquoise) et un candidat en décalage (jaune).</desc>
+                            <g transform="translate(150, 150)">
+                                <circle cx="0" cy="0" r="125" fill="white" stroke="#e2e8f0"/><circle cx="0" cy="0" r="100" fill="none" stroke="#e2e8f0"/><circle cx="0" cy="0" r="75" fill="none" stroke="#e2e8f0"/><circle cx="0" cy="0" r="50" fill="none" stroke="#e2e8f0"/><circle cx="0" cy="0" r="25" fill="none" stroke="#e2e8f0"/>
+                                <line x1="0" y1="-125" x2="0" y2="125" stroke="#cbd5e1" /><line x1="-125" y1="0" x2="125" y2="0" stroke="#cbd5e1" />
+                                <text y="-135" text-anchor="middle" font-size="10" fill="#426573" font-weight="bold">Relationnel (N)</text><text y="145" text-anchor="middle" font-size="10" fill="#426573" font-weight="bold">Structurel (S)</text><text x="-135" text-anchor="end" y="4" font-size="10" fill="#426573" font-weight="bold">Stratégique (W)</text><text x="135" text-anchor="start" y="4" font-size="10" fill="#426573" font-weight="bold">Opérationnel (E)</text>
+                                <!-- Profil Poste (Rouge) -->
+                                <polygon points="0,-100 75,0 0,50 -75,0" fill="#fca5a5" fill-opacity="0.4" stroke="#ef4444" stroke-width="2.5"/>
+                                <!-- Candidat 1 (Turquoise) -->
+                                <polygon points="0,-125 75,0 0,25 -75,0" fill="#7ac0c4" fill-opacity="0.5" stroke="#7ac0c4" stroke-width="2"/>
+                                <!-- Candidat 2 (Jaune) -->
+                                <polygon points="0,-25 50,0 0,125 -100,0" fill="#ffeea4" fill-opacity="0.6" stroke="#facc15" stroke-width="2"/>
+                            </g>
+                            <g font-size="9" transform="translate(10, 285)">
+                                <rect x="0" y="0" width="10" height="10" fill="#ef4444" fill-opacity="0.8"/><text x="15" y="9">Profil du Poste</text>
+                                <rect x="95" y="0" width="10" height="10" fill="#7ac0c4" fill-opacity="0.8"/><text x="110" y="9">Candidat 1</text>
+                                <rect x="180" y="0" width="10" height="10" fill="#facc15" fill-opacity="0.8"/><text x="195" y="9">Candidat 2</text>
+                            </g>
+                        </svg>
+                    </div>
+                    <p>La heatmap révèle que le <strong>Candidat 2 (jaune)</strong>, si impressionnant à l'oral, est en réalité un risque majeur de <strong>sur-sollicitation</strong>. Le poste exigerait de lui qu'il sur-utilise en permanence son intelligence Relationnelle (sa plus faible) et qu'il sous-utilise ses points forts (Structurel et Stratégique). À l'inverse, le <strong>Candidat 1 (turquoise)</strong> présente un excellent alignement sur 3 des 4 intelligences requises. Le choix semble clair, mais il manque une dimension essentielle.</p>
+
+                    <h2 class="mt-12">Étape 2 : L'Analyse du "Pourquoi" (Les Cibles de Motivation)</h2>
+                    <p>Un bon moteur ne suffit pas, il faut le bon carburant. L'analyse des cibles de motivation nous permet de vérifier si les moteurs profonds du candidat seront nourris par la mission. Pour ce poste, le succès repose sur deux piliers : une forte orientation vers <strong>Le Matériel</strong> (pour piloter les indicateurs) et une appétence pour <strong>L'Individuel</strong> (pour l'accompagnement personnalisé).</p>
+                    
+                    <div class="my-8 overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-2 px-4 border-b text-left font-bold brand-secondary">Profil</th>
+                                    <th class="py-2 px-4 border-b text-left font-bold brand-secondary">Cible Primaire</th>
+                                    <th class="py-2 px-4 border-b text-left font-bold brand-secondary">Cible Secondaire</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-red-50">
+                                    <td class="py-2 px-4 border-b font-bold text-red-800">Poste Requis</td>
+                                    <td class="py-2 px-4 border-b text-red-800"><strong>Le Matériel</strong> (Résultats & Indicateurs)</td>
+                                    <td class="py-2 px-4 border-b text-red-800"><strong>L'Individuel</strong> (Coaching one-to-one)</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border-b font-semibold">Candidat 1</td>
+                                    <td class="py-2 px-4 border-b"><strong>Le Matériel</strong> <span class="text-green-600 font-bold">(✓ Alignement)</span></td>
+                                    <td class="py-2 px-4 border-b">Le Collectif <span class="text-orange-600 font-bold">(Δ Écart)</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border-b font-semibold">Candidat 2</td>
+                                    <td class="py-2 px-4 border-b">L'Individuel <span class="text-orange-600 font-bold">(Δ Écart)</span></td>
+                                    <td class="py-2 px-4 border-b">Le Collectif</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h2>La Conclusion Stratégique : Croiser les Deux Analyses</h2>
+                    <p>Cette deuxième analyse affine radicalement notre décision :</p>
+                    <ul class="feature-list">
+                        <li><strong>Le Candidat 2</strong> n'est pas un "mauvais" profil, mais il est mal aligné sur les deux tableaux : sa "mécanique" (ses intelligences) ne correspond pas, et son "carburant" (sa cible de motivation) n'est pas le bon. Le recruter serait une erreur.</li>
+                        <li><strong>Le Candidat 1</strong> est le choix stratégique. Son alignement opérationnel est excellent et sa motivation principale (<strong>Le Matériel</strong>) est en parfaite adéquation avec le besoin du poste. L'écart sur sa cible secondaire ("Le Collectif" au lieu de "L'Individuel") n'est pas un blocage, mais un point de vigilance à accompagner.</li>
+                    </ul>
+
+                    <h3>Notre Préconisation : Un Plan de Réussite sur Mesure</h3>
+                    <p>La conclusion est de choisir le <strong>Candidat 1</strong> et de construire son plan de réussite en compensant les deux écarts identifiés :</p>
+                    
+                    <div class="mt-4 p-4 bg-teal-50 border-l-4 border-teal-500">
+                        <p class="font-bold text-teal-800">Deux Rituels pour un Accompagnement Ciblé</p>
+                        <div class="text-sm text-teal-700 mt-2">
+                            <p class="mb-2">1. Pour son léger déficit en <strong>Intelligence Structurelle (S)</strong>, nous mettons en place la <strong>"Revue Hebdomadaire Structurée"</strong>. Ce rituel de 30 minutes avec son N+1 lui donne le cadre extérieur qui sécurise sa faiblesse naturelle, en suivant un ordre du jour simple :</p>
+                            <ul class="list-disc list-inside text-xs pl-4 space-y-1">
+                                <li><strong>10 min - Priorités (Stratégique) :</strong> Valider l'objectif de la semaine.</li>
+                                <li><strong>10 min - Blocages (Structurel) :</strong> Identifier les risques et problèmes.</li>
+                                <li><strong>10 min - Actions (Opérationnel) :</strong> Décider de la prochaine étape concrète.</li>
+                            </ul>
+                        </div>
+                        <p class="text-sm text-teal-700 mt-4">2. Pour l'écart sur sa cible de motivation, nous créons le <strong>"Point de Développement Individuel"</strong> : un rituel agile de 15 minutes tous les 15 jours avec chaque membre de son équipe. Cela lui donne le cadre et la méthode pour mener ces entretiens one-to-one qu'il n'initierait pas spontanément, et ainsi nourrir la dimension "Individuelle" du poste.</p>
+                    </div>
+
+                    <blockquote class="mt-8">La double analyse ne se contente pas de sélectionner un candidat. Elle identifie le meilleur potentiel et fournit le mode d'emploi pour garantir son succès.</blockquote>
+
+                    <div class="mt-12 text-center p-8 bg-gray-50 rounded-lg">
+                        <h2 class="font-bold text-xl brand-secondary mt-0">Vous souhaitez sécuriser un recrutement clé ?</h2>
+                        <p class="mt-2 text-gray-600">Planifions un atelier pour réaliser cette double analyse sur un de vos postes stratégiques.</p>
+                        <a href="index.html#contact" class="mt-6 inline-block brand-secondary-bg text-white font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105">Prendre contact</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="brand-secondary-bg text-white mt-16">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p>&copy; 2025 Romain Becquart. Tous droits réservés.</p>
+        </div>
+    </footer>
+</body>
+</html>
+

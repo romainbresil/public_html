@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Romain Becquart - Architecte de la Performance Durable</title>
+    <meta name="description" content="Coach et ingénieur, Romain Becquart propose un diagnostic systémique (individu, équipe, organisation) pour libérer la performance durable. Solutions pour le management, le recrutement et l'audit organisationnel.">
+    <meta name="keywords" content="coaching, consultant, management, performance durable, diagnostic organisationnel, ingénieur, Romain Becquart, Bretagne">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bleu-turquoise: #7ac0c4;
+            --bleu-marine: #426573;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        .hero-bg {
+            background-image: linear-gradient(rgba(30, 41, 59, 0.7), rgba(30, 41, 59, 0.7)), url('images/hero-background.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        .brand-primary { color: var(--bleu-turquoise); }
+        .brand-secondary { color: var(--bleu-marine); }
+        .brand-secondary-bg { background-color: var(--bleu-marine); }
+        .section-title { font-weight: 800; font-size: 2.25rem; line-height: 2.5rem; color: var(--brand-secondary); }
+        .section-subtitle { font-size: 1.25rem; line-height: 1.75rem; color: var(--gray-medium); }
+        .glow-effect { box-shadow: 0 10px 25px -5px rgba(122, 192, 196, 0.2), 0 8px 10px -6px rgba(122, 192, 196, 0.2); }
+        .animate-on-scroll { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: var(--bleu-marine);
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .chat-bubble { max-width: 80%; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; }
+        .ai-bubble { background-color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .user-bubble { background-color: var(--bleu-marine); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    </style>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfessionalService",
+      "name": "Romain Becquart - Architecte de la Performance Durable",
+      "image": "images/photo-apropos.jpg",
+      "@id": "https://romainbecquart.com/",
+      "url": "https://romainbecquart.com/",
+      "address": { "@type": "PostalAddress", "addressLocality": "Plélan-le-Grand", "addressRegion": "Bretagne", "postalCode": "35380", "addressCountry": "FR" },
+      "description": "Ingénieur et coach, j'allie la rigueur des systèmes à la compréhension fine de l'humain pour bâtir une architecture de performance durable. En alignant les individus et les missions sur leur potentiel naturel, je sécurise les prises de poste, outille le management et corrige les irritants structurels.",
+      "founder": { "@type": "Person", "name": "Romain Becquart" }
+    }
+    </script>
+</head>
+<body class="bg-white text-gray-800">
+    <header class="bg-white sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="#accueil" class="flex items-center space-x-3">
+                 <img src="images/logo.png" alt="Logo Romain Becquart, un arbre stylisé fait d'étoiles" class="w-14 h-14">
+                 <span class="text-xl font-bold brand-secondary hidden sm:block">Romain Becquart</span>
+            </a>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#accueil" class="text-gray-600 hover:brand-primary transition-colors font-medium">Accueil</a>
+                <a href="#approche" class="text-gray-600 hover:brand-primary transition-colors font-medium">Mon Approche</a>
+                <a href="ressources.html" class="text-gray-600 hover:brand-primary transition-colors font-medium">Ressources</a>
+                <a href="#solutions" class="text-gray-600 hover:brand-primary transition-colors font-medium">Solutions</a>
+                <a href="#apropos" class="text-gray-600 hover:brand-primary transition-colors font-medium">À Propos</a>
+            </div>
+            <a href="#contact" class="hidden md:block brand-secondary-bg text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105">
+                Contact
+            </a>
+            <button class="md:hidden" id="mobile-menu-button">
+                <svg class="w-6 h-6 brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="Ouvrir le menu"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </nav>
+        <div class="hidden md:hidden" id="mobile-menu">
+            <a href="#accueil" class="block py-2 px-4 text-sm hover:bg-gray-100">Accueil</a>
+            <a href="#approche" class="block py-2 px-4 text-sm hover:bg-gray-100">Mon Approche</a>
+            <a href="ressources.html" class="block py-2 px-4 text-sm hover:bg-gray-100">Ressources</a>
+            <a href="#solutions" class="block py-2 px-4 text-sm hover:bg-gray-100">Solutions</a>
+            <a href="#apropos" class="block py-2 px-4 text-sm hover:bg-gray-100">À Propos</a>
+            <a href="#contact" class="block py-2 px-4 text-sm hover:bg-gray-100">Contact</a>
+        </div>
+    </header>
+
+    <main>
+        <section id="accueil" class="hero-bg py-24 md:py-32">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight animate-on-scroll">
+                    Libérer la performance naturelle de vos équipes.
+                </h1>
+                <p class="mt-6 text-lg md:text-xl text-gray-200 max-w-3xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
+                    Ingénieur et coach, j'allie la rigueur des systèmes à la compréhension fine de l'humain pour bâtir une architecture de performance durable. En alignant les individus et les missions sur leur potentiel naturel, je sécurise les prises de poste, outille le management et corrige les irritants structurels.
+                </p>
+                <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4 animate-on-scroll" style="transition-delay: 300ms;">
+                    <a href="#solutions" class="w-full sm:w-auto brand-primary-bg text-white font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 text-lg">
+                        Découvrir mon approche
+                    </a>
+                    <a href="#contact" class="w-full sm:w-auto bg-white/90 brand-secondary font-bold py-3 px-8 rounded-lg border-2 border-transparent hover:bg-white transition-transform transform hover:scale-105 text-lg">
+                        Planifier un diagnostic
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="etude-de-cas" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                 <div class="bg-gray-50 rounded-2xl p-8 md:p-12 border border-gray-200 flex flex-col md:flex-row items-center gap-8 md:gap-12 glow-effect animate-on-scroll">
+                    <div class="md:w-1/3 text-center">
+                        <p class="font-bold text-gray-500 mb-4">PARTENARIAT STRATÉGIQUE</p>
+                        <div class="text-center p-4 bg-white rounded-lg border border-gray-200">
+                            <p class="font-bold text-lg brand-secondary">Collectivité Territoriale</p>
+                            <p class="text-sm text-gray-500 mt-1">+ 150 000 habitants</p>
+                            <p class="text-sm text-gray-500">+ 3 200 agents</p>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3">
+                        <h3 class="text-2xl md:text-3xl font-bold brand-secondary">D'une crise RH à une réorganisation durable</h3>
+                        <p class="mt-4 text-gray-600">
+                            <strong>Le point de départ :</strong> Une grande collectivité de plus de 3200 agents faisait face à un turnover et un mal-être sur des postes de managers, et souhaitait initialement sécuriser ses processus de recrutement et d'intégration.
+                        </p>
+                        <p class="mt-3 text-gray-600">
+                            <strong>L'évolution de la mission :</strong> Mon diagnostic systémique a rapidement mis en lumière que les difficultés individuelles prenaient racine dans des dysfonctionnements plus profonds. L'enjeu a donc évolué : au-delà de l'accompagnement des personnes, nous avons identifié des pistes d'amélioration sur les processus et les interfaces entre services.
+                        </p>
+                         <p class="mt-4 text-gray-700 font-semibold italic border-l-4 border-bleu-turquoise pl-4">
+                            Cette collaboration illustre parfaitement ma démarche : partir d'un symptôme pour remonter à la cause racine. C'est en agissant à la fois sur l'individu, l'équipe et l'organisation que nous construisons ensemble les fondations d'une performance réellement durable.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="approche" class="py-20" style="background-color: #fafdff;">
+             <div class="container mx-auto px-6 text-center">
+                <h2 class="section-title animate-on-scroll">Mon approche : un diagnostic à 3 niveaux</h2>
+                <p class="section-subtitle mt-4 max-w-3xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
+                    Mon modèle unique agit comme un "séparateur de causes racines". Il permet de distinguer clairement un problème de profil, de management ou de processus pour apporter la solution la plus juste et la plus efficace.
+                </p>
+                <div class="grid md:grid-cols-3 gap-8 mt-16 text-left">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 animate-on-scroll">
+                        <h3 class="text-xl font-bold brand-secondary">1. L'Individu</h3>
+                        <p class="mt-4 text-gray-600">
+                           Je cartographie l'architecture humaine (Élan Créateur, Peurs, modes opératoires) pour aligner la personne avec son poste et construire les conditions de sa réussite durable.
+                        </p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 animate-on-scroll" style="transition-delay: 150ms;">
+                        <h3 class="text-xl font-bold brand-secondary">2. L'Équipe</h3>
+                        <p class="mt-4 text-gray-600">
+                           Je vous outille pour piloter la performance au quotidien en vous donnant les clés pour motiver, développer et aligner chaque collaborateur de manière authentique et efficace.
+                        </p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 animate-on-scroll" style="transition-delay: 300ms;">
+                        <h3 class="text-xl font-bold brand-secondary">3. L'Organisation</h3>
+                        <p class="mt-4 text-gray-600">
+                           J'identifie et corrige les dysfonctionnements structurels (processus, interfaces, rôles) qui génèrent du rework, des tensions et épuisent vos collaborateurs.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ressources-teaser" class="py-20 bg-white">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="section-title animate-on-scroll">Approfondissez votre réflexion</h2>
+                <p class="section-subtitle mt-4 max-w-3xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
+                    Découvrez des outils concrets et des analyses de fond pour aller plus loin dans la compréhension de la performance durable.
+                </p>
+                <div class="grid md:grid-cols-2 gap-8 mt-16 max-w-4xl mx-auto">
+                    <div class="bg-gray-50 p-8 rounded-lg shadow-lg text-left">
+                        <h3 class="text-xl font-bold brand-secondary">Outil en action : La Double Heatmap</h3>
+                        <p class="mt-3 text-gray-600">L'outil N°1 pour sécuriser vos recrutements et éviter les erreurs de casting en visualisant l'alignement entre une personne et son poste.</p>
+                        <a href="outil-heatmap.html" class="mt-4 inline-block font-semibold text-sm brand-primary">Découvrir cet outil →</a>
+                    </div>
+                    <div class="bg-gray-50 p-8 rounded-lg shadow-lg text-left">
+                        <h3 class="text-xl font-bold brand-secondary">Article de fond : Les 3 causes du turnover</h3>
+                        <p class="mt-3 text-gray-600">Plongez au-delà des symptômes pour découvrir les vraies raisons qui poussent vos talents à partir : l'individu, l'équipe ou l'organisation ?</p>
+                        <a href="turnover.html" class="mt-4 inline-block font-semibold text-sm brand-primary">Lire l'analyse →</a>
+                    </div>
+                </div>
+                <div class="mt-12">
+                    <a href="ressources.html" class="brand-secondary-bg text-white font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 text-lg">
+                        Voir toutes les ressources
+                    </a>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="solutions" class="py-20" style="background-color: #fafdff;">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="section-title animate-on-scroll">Des solutions concrètes pour des enjeux stratégiques.</h2>
+                <p class="section-subtitle mt-4 max-w-3xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
+                    De l'audit flash à l'accompagnement systémique, mes interventions se traduisent par des livrables clairs pour transformer les défis en performance durable.
+                </p>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16 text-left">
+                    <div class="bg-white p-8 rounded-xl border border-gray-200 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-on-scroll">
+                        <h3 class="text-xl font-bold brand-primary">POUR LES DIRIGEANTS & ORGANISATIONS</h3>
+                        <h4 class="text-2xl font-bold brand-secondary mt-2">Diagnostic & Architecture Organisationnelle</h4>
+                        <p class="mt-4 text-gray-600">Obtenez une clarté absolue sur vos irritants chroniques (turnover, conflits, projets lents) et mettez en place une structure saine et performante.</p>
+                        <ul class="mt-6 space-y-3 text-gray-700">
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span><strong>Audit des processus clés</strong> (RACI)</span></li>
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span><strong>Clarification des rôles</strong> et fiches d'interface</span></li>
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span>Conception de <strong>rituels managériaux</strong> efficaces</span></li>
+                        </ul>
+                         <a href="#contact" class="mt-8 block text-center brand-secondary-bg text-white font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105">
+                            Demander un audit flash
+                        </a>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl border border-gray-200 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-on-scroll" style="transition-delay: 150ms;">
+                        <h3 class="text-xl font-bold brand-primary">POUR LES DRH & MANAGERS</h3>
+                        <h4 class="text-2xl font-bold brand-secondary mt-2">Recrutement et Onboarding Stratégique</h4>
+                        <p class="mt-4 text-gray-600">Sécurisez vos recrutements clés et accélérez la montée en puissance de vos talents en alignant l'individu, le poste et l'équipe.</p>
+                         <ul class="mt-6 space-y-3 text-gray-700">
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span><strong>Double Heatmap</strong> Personne-Poste</span></li>
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span><strong>Plan d'intégration</strong> 30/60/90 jours</span></li>
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span><strong>Guide d'Intégration Managérial</strong> pour le N+1</span></li>
+                        </ul>
+                        <a href="#contact" class="mt-8 block text-center brand-secondary-bg text-white font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105">
+                            Sécuriser un recrutement
+                        </a>
+                    </div>
+                    <div class="lg:col-span-1 md:col-span-2 bg-white p-8 rounded-xl border border-gray-200 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-on-scroll" style="transition-delay: 300ms;">
+                        <h3 class="text-xl font-bold brand-primary">POUR LES PARTICULIERS</h3>
+                        <h4 class="text-2xl font-bold brand-secondary mt-2">Bilan de Potentiel & Accompagnement</h4>
+                         <p class="mt-4 text-gray-600">Cartographiez votre architecture unique pour construire un parcours professionnel aligné, sécurisé et source de joie.</p>
+                         <ul class="mt-6 space-y-3 text-gray-700">
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span>Identification de vos <strong>zones de génie</strong></span></li>
+                            <li class="flex items-start"><span class="brand-primary font-bold mr-3">✔</span><span>Définition de vos <strong>Conditions de Performance Naturelle</strong></span></li>
+                         </ul>
+                         <a href="#contact" class="mt-8 block text-center brand-secondary-bg text-white font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105">
+                            Révéler mon potentiel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="diagnostic-ia" class="py-20 bg-gray-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center">
+                    <h2 class="section-title animate-on-scroll">✨ Outil de Diagnostic Conversationnel</h2>
+                    <p class="section-subtitle mt-4 max-w-3xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
+                        Engagez une première réflexion. Décrivez votre situation, puis laissez-vous guider par une courte conversation pour obtenir des pistes de diagnostic.
+                    </p>
+                </div>
+                
+                <div id="diag-container" class="mt-12 max-w-3xl mx-auto bg-white p-8 rounded-xl border border-gray-200">
+                    <div id="step1-problem">
+                        <div>
+                            <label for="problem-description" class="block text-lg font-medium text-gray-800">1. Décrivez votre problématique :</label>
+                            <textarea id="problem-description" name="problem-description" rows="5" class="mt-2 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-bleu-turquoise focus:border-bleu-turquoise text-base" placeholder="Ex: Mon meilleur commercial est sur le point de partir..."></textarea>
+                        </div>
+                        <div class="text-center mt-6">
+                            <button id="start-diagnosis-btn" class="w-full md:w-auto brand-secondary-bg text-white font-bold py-3 px-10 rounded-lg hover:bg-opacity-90">Démarrer la conversation</button>
+                        </div>
+                    </div>
+                    <div id="step2-conversation" class="hidden">
+                        <div id="chat-log" class="space-y-4 flex flex-col mb-6 h-64 overflow-y-auto pr-4"></div>
+                        <div id="interaction-zone"></div>
+                    </div>
+                    <div id="final-result" class="hidden">
+                        <h3 class="text-2xl font-bold text-center brand-secondary mb-8">Pistes de réflexion finales</h3>
+                        <div class="grid md:grid-cols-3 gap-8 text-left">
+                            <div class="bg-gray-100 p-6 rounded-xl"><h4 class="text-xl font-bold brand-secondary">Piste Individuelle</h4><p id="result-individu" class="mt-3 text-gray-600"></p></div>
+                            <div class="bg-gray-100 p-6 rounded-xl"><h4 class="text-xl font-bold brand-secondary">Piste Équipe</h4><p id="result-equipe" class="mt-3 text-gray-600"></p></div>
+                            <div class="bg-gray-100 p-6 rounded-xl"><h4 class="text-xl font-bold brand-secondary">Piste Organisationnelle</h4><p id="result-organisation" class="mt-3 text-gray-600"></p></div>
+                        </div>
+                         <div class="mt-10 text-center bg-teal-50 border-t-4 border-teal-500 rounded-b text-teal-900 px-4 py-3 shadow-md" role="alert">
+                            <div class="flex items-center justify-center">
+                                <div class="py-1"><svg class="fill-current h-6 w-6 text-teal-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zM9 11v4h2v-4H9zm0-4h2v2H9V7z"/></svg></div>
+                                <div><p class="font-bold">Cette analyse est une première piste.</p><p class="text-sm">Pour un diagnostic complet, <a href="#contact" class="font-semibold underline hover:text-teal-700">planifions un atelier stratégique.</a></p></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="error-message" class="hidden text-center text-red-600 bg-red-100 p-4 rounded-lg"><p>Désolé, une erreur est survenue. Veuillez rafraîchir la page et réessayer.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="apropos" class="py-20" style="background-color: #fafdff;">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-col md:flex-row items-center gap-12">
+                    <div class="md:w-1/3 animate-on-scroll">
+                        <img src="images/photo-apropos.jpg" alt="Portrait de Romain Becquart" class="rounded-lg mx-auto shadow-2xl w-full max-w-sm">
+                    </div>
+                    <div class="md:w-2/3 text-left animate-on-scroll" style="transition-delay: 150ms;">
+                        <h2 class="section-title">De l'ingénierie des systèmes à l'architecture humaine.</h2>
+                        <p class="mt-6 text-gray-600">Ingénieur de formation, ma fascination pour la compréhension des systèmes m'a naturellement mené vers le plus complexe d'entre eux : l'être humain. Mon parcours en audit et amélioration des organisations m'a donné la rigueur nécessaire pour modéliser les systèmes humains avec la même précision.</p>
+                        <p class="mt-4 text-gray-600">Après plus de 12 ans à me former et à accompagner des centaines de personnes, j'ai synthétisé ces apprentissages dans un modèle unique. Ma mission aujourd'hui est de mettre cette double expertise à votre service : la rigueur de l'ingénieur pour structurer la complexité, et la chaleur du coach pour vous accompagner avec bienveillance vers votre zone de performance naturelle et de joie.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="py-20 bg-white">
+             <div class="container mx-auto px-6">
+                 <div class="text-center">
+                    <h2 class="section-title animate-on-scroll">Prêt à identifier vos vrais leviers de performance ?</h2>
+                    <p class="section-subtitle mt-4 max-w-2xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
+                        Commençons par un échange de 30 minutes pour discuter de votre besoin et apporter un premier diagnostic. C'est la première étape, sans engagement, pour prendre des décisions éclairées.
+                    </p>
+                 </div>
+                <div class="mt-12 max-w-2xl mx-auto animate-on-scroll" style="transition-delay: 300ms;">
+                    <form action="traitement-formulaire.php" method="POST" class="space-y-6">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">Nom complet</label>
+                            <input type="text" name="name" id="name" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-bleu-turquoise focus:border-bleu-turquoise">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700">Adresse e-mail</label>
+                            <input type="email" name="email" id="email" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-bleu-turquoise focus:border-bleu-turquoise">
+                        </div>
+                        <div>
+                            <label for="subject" class="block text-sm font-medium text-gray-700">Votre besoin principal</label>
+                            <select id="subject" name="subject" class="mt-1 block w-full px-4 py-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-bleu-turquoise focus:border-bleu-turquoise">
+                                <option>Planifier un échange de diagnostic</option>
+                                <option>Auditer un dysfonctionnement</option>
+                                <option>Sécuriser un recrutement / onboarding</option>
+                                <option>Accompagner un manager</option>
+                                <option>Réaliser un bilan de potentiel</option>
+                                <option>Autre</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-gray-700">Votre message</label>
+                            <textarea id="message" name="message" rows="4" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-bleu-turquoise focus:border-bleu-turquoise"></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="w-full md:w-auto brand-secondary-bg text-white font-bold py-3 px-10 rounded-lg hover:bg-opacity-90">Envoyer mon message</button>
+                        </div>
+                    </form>
+                </div>
+             </div>
+        </section>
+    </main>
+
+    <footer class="brand-secondary-bg text-white">
+        <div class="container mx-auto px-6 py-8 text-center">
+             <div class="mb-4">
+                <a href="https://www.linkedin.com/in/romain-becquart/" target="_blank" rel="noopener noreferrer" class="inline-block text-gray-300 hover:text-white transition-colors" aria-label="Profil LinkedIn de Romain Becquart">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.25 6.5 1.75 1.75 0 016.5 8.25zM19 19h-3v-4.75c0-1.4-1.2-2.5-2.5-2.5S11 12.85 11 14.25V19h-3v-9h3v1.35c.7-1.2 2-1.85 3.5-1.85 2.5 0 4.5 2.25 4.5 5V19z"/></svg>
+                </a>
+            </div>
+            <p>&copy; 2025 Romain Becquart. Tous droits réservés.</p>
+            <p class="text-sm text-gray-300 mt-2">Architecte de la Performance Durable</p>
+            <p class="text-sm text-gray-300 mt-1">Plélan-le-Grand, Bretagne, France</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- Scripts Généraux ---
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            if (!link.href.includes('ressources.html')) {
+                link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+            }
+        });
+        const animatedElements = document.querySelectorAll('.animate-on-scroll');
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('is-visible'); });
+        }, { threshold: 0.1 });
+        animatedElements.forEach(element => observer.observe(element));
+
+        // --- Script pour le Diagnostic IA Conversationnel ---
+        const diagContainer = document.getElementById('diag-container');
+        const step1Problem = document.getElementById('step1-problem');
+        const step2Conversation = document.getElementById('step2-conversation');
+        const startDiagnosisBtn = document.getElementById('start-diagnosis-btn');
+        const problemDescription = document.getElementById('problem-description');
+        const chatLog = document.getElementById('chat-log');
+        const interactionZone = document.getElementById('interaction-zone');
+        const finalResult = document.getElementById('final-result');
+        const errorMessage = document.getElementById('error-message');
+        const resultIndividu = document.getElementById('result-individu');
+        const resultEquipe = document.getElementById('result-equipe');
+        const resultOrganisation = document.getElementById('result-organisation');
+        let chatHistory = [];
+        const MAX_QUESTIONS = 3;
+
+        startDiagnosisBtn.addEventListener('click', () => {
+            const initialProblem = problemDescription.value;
+            if (initialProblem.trim() === '') {
+                problemDescription.classList.add('border-red-500');
+                problemDescription.placeholder = 'Veuillez décrire votre problématique avant de continuer.';
+                return;
+            }
+            problemDescription.classList.remove('border-red-500');
+            chatHistory.push({ role: 'user', parts: [{ text: `Voici la problématique: "${initialProblem}"` }] });
+            step1Problem.classList.add('hidden');
+            step2Conversation.classList.remove('hidden');
+            addMessageToLog(initialProblem, 'user');
+            getNextQuestion();
+        });
+
+        function addMessageToLog(message, role) {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${role === 'user' ? 'user-bubble' : 'ai-bubble'}`;
+            bubble.textContent = message;
+            chatLog.appendChild(bubble);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function showSpinner() {
+            interactionZone.innerHTML = `<div class="flex justify-center items-center py-4"><div class="spinner"></div></div>`;
+        }
+
+        function showUserInput(question) {
+            addMessageToLog(question, 'ai');
+            interactionZone.innerHTML = `
+                <div class="mt-4">
+                    <label for="user-answer" class="sr-only">Votre réponse</label>
+                    <textarea id="user-answer" rows="3" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-bleu-turquoise focus:border-bleu-turquoise" placeholder="Votre réponse..."></textarea>
+                    <button id="submit-answer-btn" class="mt-4 w-full md:w-auto brand-secondary-bg text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">Répondre</button>
+                </div>`;
+            document.getElementById('submit-answer-btn').addEventListener('click', handleUserAnswer);
+            document.getElementById('user-answer').focus();
+        }
+
+        function handleUserAnswer() {
+            const userAnswerInput = document.getElementById('user-answer');
+            const userAnswer = userAnswerInput.value;
+            if (userAnswer.trim() === '') return;
+            addMessageToLog(userAnswer, 'user');
+            chatHistory.push({ role: 'user', parts: [{ text: userAnswer }] });
+            if (chatHistory.filter(m => m.role === 'model').length < MAX_QUESTIONS) {
+                getNextQuestion();
+            } else {
+                getFinalAnalysis();
+            }
+        }
+
+        async function getNextQuestion() {
+            showSpinner();
+            try {
+                const result = await callConversationAPI();
+                chatHistory.push({ role: 'model', parts: [{ text: result.question }] });
+                showUserInput(result.question);
+            } catch (error) { handleError(error); }
+        }
+        
+        async function getFinalAnalysis() {
+            showSpinner();
+            try {
+                const analysis = await callFinalAnalysisAPI();
+                resultIndividu.textContent = analysis.individu;
+                resultEquipe.textContent = analysis.equipe;
+                resultOrganisation.textContent = analysis.organisation;
+                interactionZone.classList.add('hidden');
+                finalResult.classList.remove('hidden');
+            } catch(error) { handleError(error); }
+        }
+
+        function handleError(error) {
+            console.error("Erreur API Gemini:", error);
+            step2Conversation.classList.add('hidden');
+            errorMessage.classList.remove('hidden');
+        }
+
+        async function callConversationAPI() {
+            const systemPrompt = `Tu es un consultant expert, 'Architecte de l'Élan Naturel', menant une conversation de diagnostic pour Romain Becquart. Ton but est de poser 3 questions de clarification, UNE PAR UNE. Ton raisonnement s'appuie sur le modèle de Romain : la dynamique 'Élan de Vie' (désir de Lien, Savoir, Harmonie) vs 'Peur Fondamentale'. Tes questions sondent discrètement ces angles. Règles : 1) Ne pose qu'UNE seule question à la fois. 2) N'utilise JAMAIS le jargon du modèle. 3) Tes questions doivent être ouvertes, courtes, empathiques et adaptées à l'historique de la conversation.`;
+            const payload = {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: chatHistory,
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "question": { "type": "STRING" } }, required: ["question"] } }
+            };
+            return await callGeminiAPI(payload);
+        }
+
+        async function callFinalAnalysisAPI() {
+            const systemPrompt = `Tu es un consultant expert, 'Architecte de l'Élan Naturel'. Ta mission est de réaliser une analyse finale basée sur une conversation.
+            ## Ton Modèle d'Analyse (Interne)
+            1.  **Dynamique Centrale :** Tout problème cache une tension entre un 'Élan de Vie' et une 'Peur Fondamentale'.
+                * **3 Élans/Désirs :** Lien (types Coeur: 2, 3, 4), Savoir (types Tête: 5, 6, 7), Harmonie (types Instinctif: 8, 9, 1).
+                * **3 Peurs :** Non-Reconnaissance (Lien), Monde Contraignant (Savoir), Chaos (Harmonie).
+                * **Comportements 'Refuge' :** Actions pour calmer la peur (sur-contrôle, perfectionnisme, etc.).
+            2.  **Les 3 Niveaux :** Individu, Équipe, Organisation.
+            ## Ta Mission
+            1.  **Analyse Interne :** Lis la conversation. Formule une hypothèse sur le profil Ennéagramme probable. Déduis-en l'Élan contrarié, la Peur activée, et les 'comportements refuges' décrits.
+            2.  **Restitution Finale :** Produis 3 pistes de réflexion (Individu, Équipe, Organisation). **RÈGLE D'OR :** N'utilise JAMAIS les termes techniques (Ennéagramme, Élan, Peur, etc.). TRADUIS ton analyse en langage simple. Formule des questions ouvertes qui pointent subtilement vers les 'comportements refuges' identifiés. Sois empathique et concis.`;
+            const payload = {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "individu": { "type": "STRING" },
+                            "equipe": { "type": "STRING" },
+                            "organisation": { "type": "STRING" }
+                        },
+                        required: ["individu", "equipe", "organisation"]
+                    }
+                }
+            };
+            return await callGeminiAPI(payload);
+        }
+
+        async function callGeminiAPI(payload, retries = 3, delay = 1000) {
+            const response = await fetch('gemini-proxy.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                throw new Error(`Erreur serveur proxy: ${response.statusText}`);
+            }
+            return response.json();
+        }
+    </script>
+</body>
+</html>
+
