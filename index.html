@@ -6,7 +6,6 @@
     <title>Romain Becquart - Architecte de la Performance Durable</title>
     <meta name="description" content="Coach et ingénieur, Romain Becquart propose un diagnostic systémique (individu, équipe, organisation) pour libérer la performance durable. Solutions pour le management, le recrutement et l'audit organisationnel.">
     <meta name="keywords" content="coaching, consultant, management, performance durable, diagnostic organisationnel, ingénieur, Romain Becquart, Bretagne">
-    <!-- CHEMIN CORRIGÉ -->
     <link rel="icon" type="image/png" href="assets/images/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +19,6 @@
       "@context": "https://schema.org",
       "@type": "ProfessionalService",
       "name": "Romain Becquart - Architecte de la Performance Durable",
-      /* CHEMIN CORRIGÉ avec URL complète pour le SEO */
       "image": "https://romainbecquart.com/assets/images/photo-apropos.jpg",
       "@id": "https://romainbecquart.com/",
       "url": "https://romainbecquart.com/",
@@ -34,7 +32,6 @@
     <header class="bg-white sticky top-0 z-50 shadow-md">
         <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
             <a href="#accueil" class="flex items-center space-x-3">
-                 <!-- CHEMIN CORRIGÉ -->
                  <img src="assets/images/logo.png" alt="Logo Romain Becquart, un arbre stylisé fait d'étoiles" class="w-14 h-14">
                  <span class="text-xl font-bold brand-secondary hidden sm:block">Romain Becquart</span>
             </a>
@@ -82,7 +79,6 @@
             </div>
         </section>
 
-        <!-- CHANGEMENT ICI : Fond blanc -->
         <section id="etude-de-cas" class="py-20 bg-white">
             <div class="container mx-auto px-6">
                  <div class="bg-gray-50 rounded-2xl p-8 md:p-12 border border-gray-200 flex flex-col md:flex-row items-center gap-8 md:gap-12 glow-effect animate-on-scroll">
@@ -110,7 +106,6 @@
             </div>
         </section>
 
-        <!-- CHANGEMENT ICI : Fond gris clair -->
         <section id="approche" class="py-20 bg-slate-50">
              <div class="container mx-auto px-6 text-center">
                 <h2 class="section-title animate-on-scroll">Mon approche : un diagnostic à 3 niveaux</h2>
@@ -140,7 +135,6 @@
             </div>
         </section>
 
-        <!-- CHANGEMENT ICI : Fond blanc -->
         <section id="ressources-teaser" class="py-20 bg-white">
             <div class="container mx-auto px-6 text-center">
                 <h2 class="section-title animate-on-scroll">Approfondissez votre réflexion</h2>
@@ -167,7 +161,7 @@
             </div>
         </section>
 
-        <!-- CHANGEMENT ICI : Fond gris clair -->
+
         <section id="solutions" class="py-20 bg-slate-50">
             <div class="container mx-auto px-6 text-center">
                 <h2 class="section-title animate-on-scroll">Des solutions concrètes pour des enjeux stratégiques.</h2>
@@ -217,7 +211,6 @@
             </div>
         </section>
         
-        <!-- CHANGEMENT ICI : Fond blanc -->
         <section id="diagnostic-ia" class="py-20 bg-white">
             <div class="container mx-auto px-6">
                 <div class="text-center">
@@ -260,12 +253,10 @@
             </div>
         </section>
 
-        <!-- CHANGEMENT ICI : Fond gris clair -->
         <section id="apropos" class="py-20 bg-slate-50">
             <div class="container mx-auto px-6">
                 <div class="flex flex-col md:flex-row items-center gap-12">
                     <div class="md:w-1/3 animate-on-scroll">
-                         <!-- CHEMIN CORRIGÉ -->
                         <img src="assets/images/photo-apropos.jpg" alt="Portrait de Romain Becquart" class="rounded-lg mx-auto shadow-2xl w-full max-w-sm">
                     </div>
                     <div class="md:w-2/3 text-left animate-on-scroll" style="transition-delay: 150ms;">
@@ -277,7 +268,6 @@
             </div>
         </section>
 
-        <!-- CHANGEMENT ICI : Fond blanc -->
         <section id="contact" class="py-20 bg-white">
              <div class="container mx-auto px-6">
                  <div class="text-center">
@@ -333,169 +323,9 @@
         </div>
     </footer>
 
-    <script>
-        // --- Scripts Généraux ---
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-        mobileMenu.querySelectorAll('a').forEach(link => {
-            if (!link.href.includes('ressources.html')) {
-                link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
-            }
-        });
-        const animatedElements = document.querySelectorAll('.animate-on-scroll');
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('is-visible'); });
-        }, { threshold: 0.1 });
-        animatedElements.forEach(element => observer.observe(element));
-
-        // --- Script pour le Diagnostic IA Conversationnel ---
-        const diagContainer = document.getElementById('diag-container');
-        const step1Problem = document.getElementById('step1-problem');
-        const step2Conversation = document.getElementById('step2-conversation');
-        const startDiagnosisBtn = document.getElementById('start-diagnosis-btn');
-        const problemDescription = document.getElementById('problem-description');
-        const chatLog = document.getElementById('chat-log');
-        const interactionZone = document.getElementById('interaction-zone');
-        const finalResult = document.getElementById('final-result');
-        const errorMessage = document.getElementById('error-message');
-        const resultIndividu = document.getElementById('result-individu');
-        const resultEquipe = document.getElementById('result-equipe');
-        const resultOrganisation = document.getElementById('result-organisation');
-        let chatHistory = [];
-        const MAX_QUESTIONS = 3;
-
-        startDiagnosisBtn.addEventListener('click', () => {
-            const initialProblem = problemDescription.value;
-            if (initialProblem.trim() === '') {
-                problemDescription.classList.add('border-red-500');
-                problemDescription.placeholder = 'Veuillez décrire votre problématique avant de continuer.';
-                return;
-            }
-            problemDescription.classList.remove('border-red-500');
-            chatHistory.push({ role: 'user', parts: [{ text: `Voici la problématique: "${initialProblem}"` }] });
-            step1Problem.classList.add('hidden');
-            step2Conversation.classList.remove('hidden');
-            addMessageToLog(initialProblem, 'user');
-            getNextQuestion();
-        });
-
-        function addMessageToLog(message, role) {
-            const bubble = document.createElement('div');
-            bubble.className = `chat-bubble ${role === 'user' ? 'user-bubble' : 'ai-bubble'}`;
-            bubble.textContent = message;
-            chatLog.appendChild(bubble);
-            chatLog.scrollTop = chatLog.scrollHeight;
-        }
-
-        function showSpinner() {
-            interactionZone.innerHTML = `<div class="flex justify-center items-center py-4"><div class="spinner"></div></div>`;
-        }
-
-        function showUserInput(question) {
-            addMessageToLog(question, 'ai');
-            interactionZone.innerHTML = `
-                <div class="mt-4">
-                    <label for="user-answer" class="sr-only">Votre réponse</label>
-                    <textarea id="user-answer" rows="3" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-bleu-turquoise focus:border-bleu-turquoise" placeholder="Votre réponse..."></textarea>
-                    <button id="submit-answer-btn" class="mt-4 w-full md:w-auto brand-secondary-bg text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">Répondre</button>
-                </div>`;
-            document.getElementById('submit-answer-btn').addEventListener('click', handleUserAnswer);
-            document.getElementById('user-answer').focus();
-        }
-
-        function handleUserAnswer() {
-            const userAnswerInput = document.getElementById('user-answer');
-            const userAnswer = userAnswerInput.value;
-            if (userAnswer.trim() === '') return;
-            addMessageToLog(userAnswer, 'user');
-            chatHistory.push({ role: 'user', parts: [{ text: userAnswer }] });
-            if (chatHistory.filter(m => m.role === 'model').length < MAX_QUESTIONS) {
-                getNextQuestion();
-            } else {
-                getFinalAnalysis();
-            }
-        }
-
-        async function getNextQuestion() {
-            showSpinner();
-            try {
-                const result = await callConversationAPI();
-                chatHistory.push({ role: 'model', parts: [{ text: result.question }] });
-                showUserInput(result.question);
-            } catch (error) { handleError(error); }
-        }
-        
-        async function getFinalAnalysis() {
-            showSpinner();
-            try {
-                const analysis = await callFinalAnalysisAPI();
-                resultIndividu.textContent = analysis.individu;
-                resultEquipe.textContent = analysis.equipe;
-                resultOrganisation.textContent = analysis.organisation;
-                interactionZone.classList.add('hidden');
-                finalResult.classList.remove('hidden');
-            } catch(error) { handleError(error); }
-        }
-
-        function handleError(error) {
-            console.error("Erreur API Gemini:", error);
-            step2Conversation.classList.add('hidden');
-            errorMessage.classList.remove('hidden');
-        }
-
-        async function callConversationAPI() {
-            const systemPrompt = `Tu es un consultant expert, 'Architecte de l'Élan Naturel', menant une conversation de diagnostic pour Romain Becquart. Ton but est de poser 3 questions de clarification, UNE PAR UNE. Ton raisonnement s'appuie sur le modèle de Romain : la dynamique 'Élan de Vie' (désir de Lien, Savoir, Harmonie) vs 'Peur Fondamentale'. Tes questions sondent discrètement ces angles. Règles : 1) Ne pose qu'UNE seule question à la fois. 2) N'utilise JAMAIS le jargon du modèle. 3) Tes questions doivent être ouvertes, courtes, empathiques et adaptées à l'historique de la conversation.`;
-            const payload = {
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                contents: chatHistory,
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "question": { "type": "STRING" } }, required: ["question"] } }
-            };
-            return await callGeminiAPI(payload);
-        }
-
-        async function callFinalAnalysisAPI() {
-            const systemPrompt = `Tu es un consultant expert, 'Architecte de l'Élan Naturel'. Ta mission est de réaliser une analyse finale basée sur une conversation.
-            ## Ton Modèle d'Analyse (Interne)
-            1.  **Dynamique Centrale :** Tout problème cache une tension entre un 'Élan de Vie' et une 'Peur Fondamentale'.
-                * **3 Élans/Désirs :** Lien (types Coeur: 2, 3, 4), Savoir (types Tête: 5, 6, 7), Harmonie (types Instinctif: 8, 9, 1).
-                * **3 Peurs :** Non-Reconnaissance (Lien), Monde Contraignant (Savoir), Chaos (Harmonie).
-                * **Comportements 'Refuge' :** Actions pour calmer la peur (sur-contrôle, perfectionnisme, etc.).
-            2.  **Les 3 Niveaux :** Individu, Équipe, Organisation.
-            ## Ta Mission
-            1.  **Analyse Interne :** Lis la conversation. Formule une hypothèse sur le profil Ennéagramme probable. Déduis-en l'Élan contrarié, la Peur activée, et les 'comportements refuges' décrits.
-            2.  **Restitution Finale :** Produis 3 pistes de réflexion (Individu, Équipe, Organisation). **RÈGLE D'OR :** N'utilise JAMAIS les termes techniques (Ennéagramme, Élan, Peur, etc.). TRADUIS ton analyse en langage simple. Formule des questions ouvertes qui pointent subtilement vers les 'comportements refuges' identifiés. Sois empathique et concis.`;
-            const payload = {
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                contents: chatHistory,
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: {
-                            "individu": { "type": "STRING" },
-                            "equipe": { "type": "STRING" },
-                            "organisation": { "type": "STRING" }
-                        },
-                        required: ["individu", "equipe", "organisation"]
-                    }
-                }
-            };
-            return await callGeminiAPI(payload);
-        }
-
-        async function callGeminiAPI(payload, retries = 3, delay = 1000) {
-            const response = await fetch('gemini-proxy.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) {
-                throw new Error(`Erreur serveur proxy: ${response.statusText}`);
-            }
-            return response.json();
-        }
-    </script>
+    <!-- SCRIPT EXTERNALISÉ -->
+    <script src="assets/js/diag-ai.js"></script>
+    
 </body>
 </html>
 
