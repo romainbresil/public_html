@@ -7,8 +7,6 @@ error_reporting(E_ALL);
 header('Content-Type: application/json');
 
 // --- CHARGEMENT SÉCURISÉ DE LA CLÉ API ---
-// Le script va chercher le fichier de configuration dans le dossier parent,
-// le rendant inaccessible depuis le web.
 $configPath = __DIR__ . '/../config.php';
 
 if (!file_exists($configPath)) {
@@ -20,11 +18,9 @@ require_once $configPath;
 $apiKey = GEMINI_API_KEY;
 // -----------------------------------------
 
-// Récupère les données envoyées depuis le site (JavaScript)
 $input = file_get_contents('php://input');
 $data = json_decode($input, true);
 
-// Vérifie si les données sont valides
 if (json_last_error() !== JSON_ERROR_NONE || !isset($data['contents'])) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid JSON input']);
@@ -37,7 +33,9 @@ if ($apiKey === 'VOTRE_CLE_API_GEMINI_ICI' || empty($apiKey)) {
     exit;
 }
 
-$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=' . $apiKey;
+// --- MISE À JOUR DU MODÈLE ---
+// Utilisation du modèle stable, performant et économique recommandé pour la production.
+$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . $apiKey;
 
 // Prépare la requête pour l'API Gemini
 $options = [
@@ -45,7 +43,7 @@ $options = [
         'header'  => "Content-Type: application/json\r\n",
         'method'  => 'POST',
         'content' => json_encode($data),
-        'ignore_errors' => true // Permet de récupérer le message d'erreur de l'API s'il y en a un
+        'ignore_errors' => true 
     ]
 ];
 
@@ -58,4 +56,3 @@ $statusCode = (int) explode(' ', $http_response_header[0])[1];
 // Renvoie la réponse de l'API Gemini au site web
 http_response_code($statusCode);
 echo $result;
-

@@ -35,7 +35,8 @@ const resultOrganisation = document.getElementById('result-organisation');
 
 // Initialisation de l'historique de la conversation et du nombre max de questions
 let chatHistory = [];
-const MAX_QUESTIONS = 3;
+// --- AMÉLIORATION : Augmentation du nombre de questions pour un diagnostic plus approfondi ---
+const MAX_QUESTIONS = 5;
 
 // Événement au clic sur le bouton "Démarrer"
 startDiagnosisBtn.addEventListener('click', () => {
@@ -64,7 +65,7 @@ function addMessageToLog(message, role) {
 
 // Fonction pour afficher l'indicateur de chargement (spinner)
 function showSpinner() {
-    interactionZone.innerHTML = `<div class="flex justify-center items-center py-4"><div class="spinner"></div></div>`;
+    interactionZone.innerHTML = `<div class="flex justify-center items-center py-4"><div class="spinner"></div><p class="ml-4 text-gray-500 italic">L'IA analyse votre réponse...</p></div>`;
 }
 
 // Fonction pour afficher la question de l'IA et le champ de réponse de l'utilisateur
@@ -126,7 +127,7 @@ function handleError(error) {
 
 // Prépare le payload pour l'API de conversation
 async function callConversationAPI() {
-    const systemPrompt = `Tu es un consultant expert, 'Architecte de l'Élan Naturel', menant une conversation de diagnostic pour Romain Becquart. Ton but est de poser 3 questions de clarification, UNE PAR UNE. Ton raisonnement s'appuie sur le modèle de Romain : la dynamique 'Élan de Vie' (désir de Lien, Savoir, Harmonie) vs 'Peur Fondamentale'. Tes questions sondent discrètement ces angles. Règles : 1) Ne pose qu'UNE seule question à la fois. 2) N'utilise JAMAIS le jargon du modèle. 3) Tes questions doivent être ouvertes, courtes, empathiques et adaptées à l'historique de la conversation.`;
+    const systemPrompt = `Tu es un consultant expert, 'Architecte de l'Élan Naturel', menant une conversation de diagnostic pour Romain Becquart. Ton but est de poser ${MAX_QUESTIONS} questions de clarification, UNE PAR UNE. Ton raisonnement s'appuie sur le modèle de Romain : la dynamique 'Élan de Vie' (désir de Lien, Savoir, Harmonie) vs 'Peur Fondamentale'. Tes questions sondent discrètement ces angles. Règles : 1) Ne pose qu'UNE seule question à la fois. 2) N'utilise JAMAIS le jargon du modèle. 3) Tes questions doivent être ouvertes, courtes, empathiques et adaptées à l'historique de la conversation.`;
     const payload = {
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents: chatHistory,
@@ -174,7 +175,19 @@ async function callGeminiAPI(payload, retries = 3, delay = 1000) {
         body: JSON.stringify(payload)
     });
     if (!response.ok) {
+        const errorBody = await response.json();
+        console.error("Détail de l'erreur du proxy:", errorBody);
         throw new Error(`Erreur serveur proxy: ${response.statusText}`);
     }
-    return response.json();
+    const result = await response.json();
+    // Gemini retourne parfois une réponse JSON valide mais encapsulée dans la clé "text"
+    if (result.candidates && result.candidates[0].content.parts[0].text) {
+        try {
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        } catch (e) {
+            // Si le parsing échoue, ce n'était probablement pas un JSON, on retourne la réponse brute
+            return result;
+        }
+    }
+    return result;
 }
