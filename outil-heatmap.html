@@ -5,40 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>La Double Analyse : Heatmap & Motivations - Romain Becquart</title>
     <meta name="description" content="Découvrez un outil de diagnostic en deux temps pour sécuriser vos recrutements en analysant les 4 intelligences et les cibles de motivation.">
-    <link rel="icon" type="image/png" href="images/logo.png">
+    
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bleu-turquoise: #7ac0c4;
-            --bleu-marine: #426573;
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <!-- NOUVEAU : DONNÉES STRUCTURÉES POUR L'ARTICLE -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "La Double Analyse : Un cas concret de Heatmap & Motivations",
+      "author": {
+        "@type": "Person",
+        "name": "Romain Becquart",
+        "url": "https://romainbecquart.com/#apropos"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Romain Becquart",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://romainbecquart.com/assets/images/logo.png"
         }
-        body { font-family: 'Inter', sans-serif; }
-        .brand-primary { color: var(--bleu-turquoise); }
-        .brand-secondary { color: var(--bleu-marine); }
-        .brand-secondary-bg { background-color: var(--bleu-marine); }
-        .content-section h2 { font-size: 1.5rem; font-weight: 700; color: var(--bleu-marine); margin-top: 2rem; margin-bottom: 1rem; }
-        .content-section h3 { font-size: 1.25rem; font-weight: 600; color: var(--bleu-marine); margin-top: 1.5rem; margin-bottom: 0.75rem; }
-        .content-section p, .content-section ul { margin-bottom: 1rem; line-height: 1.7; }
-        .content-section .feature-list ul { list-style-position: inside; list-style-type: none; padding-left: 0; }
-        .content-section .feature-list li { position: relative; padding-left: 2rem; margin-bottom: 0.5rem; }
-        .content-section .feature-list li::before { content: '✔'; position: absolute; left: 0; color: var(--bleu-turquoise); font-weight: bold; }
-        .content-section blockquote {
-            border-left: 4px solid var(--bleu-turquoise);
-            padding-left: 1rem;
-            margin: 1.5rem 0;
-            font-style: italic;
-            color: #4a5568;
-        }
-    </style>
+      },
+      "datePublished": "2025-09-30",
+      "image": "https://romainbecquart.com/assets/images/hero-background.jpg"
+    }
+    </script>
+
 </head>
 <body class="bg-gray-50 text-gray-800">
     <header class="bg-white sticky top-0 z-50 shadow-md">
         <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
             <a href="index.html" class="flex items-center space-x-3">
-                 <img src="images/logo.png" alt="Logo Romain Becquart" class="w-14 h-14">
+                 <img src="assets/images/logo.png" alt="Logo Romain Becquart" class="w-14 h-14">
                  <span class="text-xl font-bold brand-secondary hidden sm:block">Romain Becquart</span>
             </a>
             <a href="ressources.html" class="text-gray-600 hover:brand-primary transition-colors font-medium">← Retour aux ressources</a>
@@ -184,4 +189,3 @@
     </footer>
 </body>
 </html>
-
