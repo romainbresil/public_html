@@ -1,0 +1,206 @@
+/* ==========================================================================
+    Feuille de Style Globale pour le site de Romain Becquart
+    Ce fichier centralise toutes les règles de style du site pour en
+    faciliter la maintenance.
+==========================================================================
+*/
+
+/* --------------------------------------------------------------------------
+    Variables de Couleur et Polices Globales
+--------------------------------------------------------------------------
+*/
+:root {
+    --bleu-turquoise: #7ac0c4;
+    --bleu-marine: #426573;
+    /* Ajout de nouvelles variables pour la cohérence */
+    --gray-medium: #6b7280; /* Gris moyen pour les sous-titres */
+    --brand-primary-bg: #7ac0c4; /* Fond turquoise */
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+    Styles de la Marque (Branding)
+--------------------------------------------------------------------------
+*/
+.brand-primary {
+    color: var(--bleu-turquoise);
+}
+.brand-secondary {
+    color: var(--bleu-marine);
+}
+.brand-primary-bg {
+    background-color: var(--brand-primary-bg);
+}
+.brand-secondary-bg {
+    background-color: var(--bleu-marine);
+}
+
+/* --------------------------------------------------------------------------
+    Composants Réutilisables
+--------------------------------------------------------------------------
+*/
+
+/* Titres de section */
+.section-title {
+    font-weight: 800;
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    color: var(--bleu-marine); /* Correction de la variable */
+}
+
+/* Sous-titres de section */
+.section-subtitle {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    color: var(--gray-medium);
+}
+
+/* Effet d'ombre colorée */
+.glow-effect {
+    box-shadow: 0 10px 25px -5px rgba(122, 192, 196, 0.2), 0 8px 10px -6px rgba(122, 192, 196, 0.2);
+}
+
+/* --------------------------------------------------------------------------
+    Animations
+--------------------------------------------------------------------------
+*/
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: var(--bleu-marine);
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* --------------------------------------------------------------------------
+    Styles Spécifiques aux Pages et Sections
+--------------------------------------------------------------------------
+*/
+
+/* Section Héros (Page d'accueil) */
+.hero-bg {
+    background-image: linear-gradient(rgba(30, 41, 59, 0.7), rgba(30, 41, 59, 0.7)), url('../images/hero-background.jpg'); /* Chemin corrigé */
+    background-size: cover;
+    background-position: center;
+}
+
+/* Styles pour les pages d'articles */
+.article-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--bleu-marine);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.article-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--bleu-marine);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.article-content p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+.article-content blockquote {
+    border-left: 4px solid var(--bleu-turquoise);
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: #4a5568;
+}
+
+/* Style de liste spécifique à 3modes.html */
+.article-content ul {
+    list-style-position: inside;
+    list-style-type: '✔ ';
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Style pour l'accordéon (outil-collaboration.html) */
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-out;
+}
+
+/* Style pour la section "highlight" (quick-win.html) */
+.article-content .highlight {
+    background-color: #f0f9ff;
+    border-left: 4px solid var(--bleu-turquoise);
+    padding: 1rem;
+    margin: 1.5rem 0;
+}
+
+/* Style pour les listes de fonctionnalités (outil-heatmap.html) */
+.content-section .feature-list ul {
+    list-style-position: inside;
+    list-style-type: none;
+    padding-left: 0;
+}
+.content-section .feature-list li {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 0.5rem;
+}
+.content-section .feature-list li::before {
+    content: '✔';
+    position: absolute;
+    left: 0;
+    color: var(--bleu-turquoise);
+    font-weight: bold;
+}
+
+
+/* Styles pour l'outil de Diagnostic IA */
+.chat-bubble {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+}
+.ai-bubble {
+    background-color: #e2e8f0;
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+}
+.user-bubble {
+    background-color: var(--bleu-marine);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}

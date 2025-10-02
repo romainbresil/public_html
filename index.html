@@ -6,50 +6,22 @@
     <title>Romain Becquart - Architecte de la Performance Durable</title>
     <meta name="description" content="Coach et ingénieur, Romain Becquart propose un diagnostic systémique (individu, équipe, organisation) pour libérer la performance durable. Solutions pour le management, le recrutement et l'audit organisationnel.">
     <meta name="keywords" content="coaching, consultant, management, performance durable, diagnostic organisationnel, ingénieur, Romain Becquart, Bretagne">
-    <link rel="icon" type="image/png" href="images/logo.png">
+    <!-- CHEMIN CORRIGÉ -->
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bleu-turquoise: #7ac0c4;
-            --bleu-marine: #426573;
-        }
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; }
-        .hero-bg {
-            background-image: linear-gradient(rgba(30, 41, 59, 0.7), rgba(30, 41, 59, 0.7)), url('images/hero-background.jpg');
-            background-size: cover;
-            background-position: center;
-        }
-        .brand-primary { color: var(--bleu-turquoise); }
-        .brand-secondary { color: var(--bleu-marine); }
-        .brand-secondary-bg { background-color: var(--bleu-marine); }
-        .section-title { font-weight: 800; font-size: 2.25rem; line-height: 2.5rem; color: var(--brand-secondary); }
-        .section-subtitle { font-size: 1.25rem; line-height: 1.75rem; color: var(--gray-medium); }
-        .glow-effect { box-shadow: 0 10px 25px -5px rgba(122, 192, 196, 0.2), 0 8px 10px -6px rgba(122, 192, 196, 0.2); }
-        .animate-on-scroll { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
-        .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: var(--bleu-marine);
-            animation: spin 1s ease infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .chat-bubble { max-width: 80%; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; }
-        .ai-bubble { background-color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .user-bubble { background-color: var(--bleu-marine); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-    </style>
+    
+    <link rel="stylesheet" href="assets/css/style.css">
+
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "ProfessionalService",
       "name": "Romain Becquart - Architecte de la Performance Durable",
-      "image": "images/photo-apropos.jpg",
+      /* CHEMIN CORRIGÉ avec URL complète pour le SEO */
+      "image": "https://romainbecquart.com/assets/images/photo-apropos.jpg",
       "@id": "https://romainbecquart.com/",
       "url": "https://romainbecquart.com/",
       "address": { "@type": "PostalAddress", "addressLocality": "Plélan-le-Grand", "addressRegion": "Bretagne", "postalCode": "35380", "addressCountry": "FR" },
@@ -62,7 +34,8 @@
     <header class="bg-white sticky top-0 z-50 shadow-md">
         <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
             <a href="#accueil" class="flex items-center space-x-3">
-                 <img src="images/logo.png" alt="Logo Romain Becquart, un arbre stylisé fait d'étoiles" class="w-14 h-14">
+                 <!-- CHEMIN CORRIGÉ -->
+                 <img src="assets/images/logo.png" alt="Logo Romain Becquart, un arbre stylisé fait d'étoiles" class="w-14 h-14">
                  <span class="text-xl font-bold brand-secondary hidden sm:block">Romain Becquart</span>
             </a>
             <div class="hidden md:flex items-center space-x-8">
@@ -109,6 +82,7 @@
             </div>
         </section>
 
+        <!-- CHANGEMENT ICI : Fond blanc -->
         <section id="etude-de-cas" class="py-20 bg-white">
             <div class="container mx-auto px-6">
                  <div class="bg-gray-50 rounded-2xl p-8 md:p-12 border border-gray-200 flex flex-col md:flex-row items-center gap-8 md:gap-12 glow-effect animate-on-scroll">
@@ -136,7 +110,8 @@
             </div>
         </section>
 
-        <section id="approche" class="py-20" style="background-color: #fafdff;">
+        <!-- CHANGEMENT ICI : Fond gris clair -->
+        <section id="approche" class="py-20 bg-slate-50">
              <div class="container mx-auto px-6 text-center">
                 <h2 class="section-title animate-on-scroll">Mon approche : un diagnostic à 3 niveaux</h2>
                 <p class="section-subtitle mt-4 max-w-3xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
@@ -165,6 +140,7 @@
             </div>
         </section>
 
+        <!-- CHANGEMENT ICI : Fond blanc -->
         <section id="ressources-teaser" class="py-20 bg-white">
             <div class="container mx-auto px-6 text-center">
                 <h2 class="section-title animate-on-scroll">Approfondissez votre réflexion</h2>
@@ -191,8 +167,8 @@
             </div>
         </section>
 
-
-        <section id="solutions" class="py-20" style="background-color: #fafdff;">
+        <!-- CHANGEMENT ICI : Fond gris clair -->
+        <section id="solutions" class="py-20 bg-slate-50">
             <div class="container mx-auto px-6 text-center">
                 <h2 class="section-title animate-on-scroll">Des solutions concrètes pour des enjeux stratégiques.</h2>
                 <p class="section-subtitle mt-4 max-w-3xl mx-auto animate-on-scroll" style="transition-delay: 150ms;">
@@ -241,7 +217,8 @@
             </div>
         </section>
         
-        <section id="diagnostic-ia" class="py-20 bg-gray-50">
+        <!-- CHANGEMENT ICI : Fond blanc -->
+        <section id="diagnostic-ia" class="py-20 bg-white">
             <div class="container mx-auto px-6">
                 <div class="text-center">
                     <h2 class="section-title animate-on-scroll">✨ Outil de Diagnostic Conversationnel</h2>
@@ -283,11 +260,13 @@
             </div>
         </section>
 
-        <section id="apropos" class="py-20" style="background-color: #fafdff;">
+        <!-- CHANGEMENT ICI : Fond gris clair -->
+        <section id="apropos" class="py-20 bg-slate-50">
             <div class="container mx-auto px-6">
                 <div class="flex flex-col md:flex-row items-center gap-12">
                     <div class="md:w-1/3 animate-on-scroll">
-                        <img src="images/photo-apropos.jpg" alt="Portrait de Romain Becquart" class="rounded-lg mx-auto shadow-2xl w-full max-w-sm">
+                         <!-- CHEMIN CORRIGÉ -->
+                        <img src="assets/images/photo-apropos.jpg" alt="Portrait de Romain Becquart" class="rounded-lg mx-auto shadow-2xl w-full max-w-sm">
                     </div>
                     <div class="md:w-2/3 text-left animate-on-scroll" style="transition-delay: 150ms;">
                         <h2 class="section-title">De l'ingénierie des systèmes à l'architecture humaine.</h2>
@@ -298,6 +277,7 @@
             </div>
         </section>
 
+        <!-- CHANGEMENT ICI : Fond blanc -->
         <section id="contact" class="py-20 bg-white">
              <div class="container mx-auto px-6">
                  <div class="text-center">
