@@ -99,7 +99,6 @@ async function getNextQuestion() {
     showSpinner();
     try {
         const result = await callConversationAPI();
-        // Vérification que la question existe bien avant de continuer
         if (result && result.question) {
             chatHistory.push({ role: 'model', parts: [{ text: result.question }] });
             showUserInput(result.question);
@@ -175,7 +174,7 @@ async function callFinalAnalysisAPI() {
     return await callGeminiAPI(payload);
 }
 
-// --- FONCTION CORRIGÉE ---
+// --- FONCTION CORRIGÉE ET ROBUSTIFÉE ---
 async function callGeminiAPI(payload) {
     const response = await fetch('gemini-proxy.php', {
         method: 'POST',
@@ -184,35 +183,4 @@ async function callGeminiAPI(payload) {
     });
 
     if (!response.ok) {
-        const errorBody = await response.json();
-        console.error("Détail de l'erreur du proxy:", errorBody);
-        throw new Error(`Erreur serveur proxy: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-
-    // Le nouveau modèle retourne parfois le JSON dans une chaîne de caractères "text"
-    if (result.candidates && result.candidates[0].content.parts[0].text) {
-        const textContent = result.candidates[0].content.parts[0].text;
-        try {
-            // Tentative de déchiffrer le contenu texte comme du JSON
-            return JSON.parse(textContent);
-        } catch (e) {
-            // Si ça échoue, c'est que la réponse n'était pas un JSON encapsulé.
-            // Cela peut indiquer une erreur de formatage de l'API.
-            console.error("Impossible de parser la réponse JSON de l'API:", textContent);
-            throw new Error("Réponse inattendue de l'API Gemini.");
-        }
-    }
-
-    // Si la réponse est déjà un objet JSON correct (cas le plus simple)
-    // (Cette partie est une sécurité, normalement la réponse est dans "text")
-    if (result.candidates && typeof result.candidates[0].content.parts[0] === 'object') {
-        return result.candidates[0].content.parts[0];
-    }
-    
-    // Si aucun des cas ci-dessus ne correspond, la structure de la réponse est inattendue.
-    console.error("Structure de réponse API inconnue:", result);
-    throw new Error("La structure de la réponse de l'API a changé.");
-}
 
