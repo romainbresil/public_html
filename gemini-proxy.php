@@ -42,6 +42,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Ajout d'un timeout de 30 secondes
+curl_setopt($ch, CURLOPT_CAINFO, __DIR__ . '/lib/cacert.pem'); 
 
 $result = curl_exec($ch);
 $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
