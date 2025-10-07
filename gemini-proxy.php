@@ -15,7 +15,7 @@ if (!file_exists($configPath)) {
     exit;
 }
 require_once $configPath;
-$apiKey = GEMINI_API_KEY;
+$apiKey = defined('GEMINI_API_KEY') ? GEMINI_API_KEY : '';
 // -----------------------------------------
 
 $input = file_get_contents('php://input');
@@ -27,13 +27,13 @@ if (json_last_error() !== JSON_ERROR_NONE || !isset($data['contents'])) {
     exit;
 }
 
-if ($apiKey === 'VOTRE_CLE_API_GEMINI_ICI' || empty($apiKey)) {
+if (empty($apiKey) || $apiKey === 'VOTRE_CLE_API_GEMINI_ICI') {
     http_response_code(500);
     echo json_encode(['error' => 'La clé API n\'est pas configurée dans le fichier config.php sur le serveur.']);
     exit;
 }
 
-$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . $apiKey;
+$apiUrl = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=' . $apiKey;
 
 // --- Utilisation de cURL pour une meilleure robustesse ---
 $ch = curl_init($apiUrl);
@@ -41,8 +41,9 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Ajout d'un timeout de 30 secondes
-curl_setopt($ch, CURLOPT_CAINFO, __DIR__ . '/lib/cacert.pem'); 
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+// Chemin vers le fichier de certificats pour la validation SSL
+curl_setopt($ch, CURLOPT_CAINFO, __DIR__ . '/lib/cacert.pem');
 
 $result = curl_exec($ch);
 $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
