@@ -55,7 +55,7 @@ const resultIndividu = document.getElementById('result-individu');
 const resultEquipe = document.getElementById('result-equipe');
 const resultOrganisation = document.getElementById('result-organisation');
 
-// S'assure que les éléments existent avant d'ajouter des écouteurs
+// S'assure que les éléments du chatbot existent avant d'ajouter des écouteurs
 if (startDiagnosisBtn) {
 
     // Initialisation de l'historique de la conversation et du nombre max de questions
@@ -127,96 +127,3 @@ if (startDiagnosisBtn) {
             if (result && result.question) {
                 chatHistory.push({ role: 'model', parts: [{ text: result.question }] });
                 showUserInput(result.question);
-            } else {
-                throw new Error("La réponse de l'API n'a pas le format attendu (question manquante).");
-            }
-        } catch (error) { handleError(error); }
-    }
-
-    // Fonction asynchrone pour obtenir l'analyse finale de l'IA
-    async function getFinalAnalysis() {
-        showSpinner();
-        try {
-            const analysis = await callFinalAnalysisAPI();
-             if (analysis && analysis.individu && analysis.equipe && analysis.organisation) {
-                resultIndividu.textContent = analysis.individu;
-                resultEquipe.textContent = analysis.equipe;
-                resultOrganisation.textContent = analysis.organisation;
-                interactionZone.classList.add('hidden');
-                finalResult.classList.remove('hidden');
-            } else {
-                throw new Error("La réponse de l'API n'a pas le format attendu (analyse finale incomplète).");
-            }
-        } catch(error) { handleError(error); }
-    }
-
-    // Gère les erreurs de communication avec l'API
-    function handleError(error) {
-        console.error("Erreur API Gemini:", error);
-        step2Conversation.classList.add('hidden');
-        errorMessage.classList.remove('hidden');
-    }
-
-    // --- Fonctions de préparation des requêtes (Payloads) pour l'API V1 ---
-
-    // Prépare le payload pour l'API de conversation (version V1)
-    function callConversationAPI() {
-        const systemPrompt = `Tu es un consultant expert, 'Architecte de l'Élan Naturel', menant une conversation de diagnostic pour Romain Becquart. Ton but est de poser ${MAX_QUESTIONS} questions de clarification, UNE PAR UNE. Ton raisonnement s'appuie sur le modèle de Romain : la dynamique 'Élan de Vie' vs 'Peur Fondamentale'. Tes questions sondent discrètement ces angles. Règles : 1) Ne pose qu'UNE seule question à la fois. 2) N'utilise JAMAIS le jargon du modèle. 3) Tes questions doivent être ouvertes, courtes, empathiques et adaptées à l'historique de la conversation. La réponse doit être un JSON avec une clé "question".`;
-        
-        // La V1 intègre le prompt système dans l'historique de la conversation
-        const fullHistory = [
-            { role: 'user', parts: [{ text: systemPrompt }] },
-            { role: 'model', parts: [{ text: '{"question": "Entendu. Quelle est la problématique initiale ?"}' }] }
-        ].concat(chatHistory);
-
-        const payload = {
-            contents: fullHistory,
-            generationConfig: {
-                responseMimeType: "application/json",
-            }
-        };
-        return callGeminiAPI(payload);
-    }
-
-    // Prépare le payload pour l'API d'analyse finale (version V1)
-    function callFinalAnalysisAPI() {
-        const systemPrompt = `Tu es un consultant expert. Ta mission est de réaliser une analyse finale basée sur une conversation.
-        ## Ton Modèle d'Analyse
-        1.  **Dynamique Centrale :** Tout problème cache une tension entre un 'Élan de Vie' (désir de Lien, Savoir, Harmonie) et une 'Peur Fondamentale' (Non-Reconnaissance, Monde Contraignant, Chaos).
-        2.  **Les 3 Niveaux :** Individu, Équipe, Organisation.
-        ## Ta Mission
-        Produis un JSON avec 3 pistes de réflexion (clés: "individu", "equipe", "organisation"). **RÈGLE D'OR :** N'utilise JAMAIS les termes techniques (Élan, Peur, etc.). TRADUIS ton analyse en langage simple. Formule des questions ouvertes et empathiques.`;
-
-        // La V1 intègre le prompt système dans l'historique
-        const fullHistory = [
-            { role: 'user', parts: [{ text: systemPrompt }] },
-            { role: 'model', parts: [{ text: '{"individu": "Analyse individuelle prête.", "equipe": "Analyse d\\'équipe prête.", "organisation": "Analyse organisationnelle prête."}' }] }
-        ].concat(chatHistory);
-
-        const payload = {
-            contents: fullHistory,
-            generationConfig: {
-                responseMimeType: "application/json",
-            }
-        };
-        return callGeminiAPI(payload);
-    }
-
-    // --- Fonction finale pour appeler le proxy PHP ---
-    async function callGeminiAPI(payload) {
-        const response = await fetch('gemini-proxy.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            // Tente de lire le corps de l'erreur pour un meilleur débogage
-            const errorBody = await response.json().catch(() => response.text());
-            console.error("Erreur détaillée reçue du serveur :", errorBody);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return await response.json();
-    }
-}
