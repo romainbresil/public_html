@@ -1,0 +1,113 @@
+{
+  "schema": "elan-vps-v1.3-release-v1",
+  "version": "1.3.2",
+  "series": "1.3",
+  "source_root": "observer/v1.3.0",
+  "image_repository": "elan-vps-v1",
+  "distribution_schema": "en-034-m1-vps-v1.3-distribution-v1",
+  "technical_authority": "JA-023",
+  "minimum_client_version": "1.3.0",
+  "policy_profile": "en029-m6",
+  "connector_transfer_hosts": [
+    "oaiusercontent.com"
+  ],
+  "installation_plan": [
+    {
+      "step_id": "install-release-manifest",
+      "source": "observer/v1.3.0/release-manifest.json",
+      "destination": "/etc/elan-vps-v1/release-manifest.json",
+      "mode": "0600"
+    },
+    {
+      "step_id": "install-release-dispatch",
+      "source": "observer/v1.3.0/deployment/release-dispatch.py",
+      "destination": "/usr/local/lib/elan-vps-v1/release-dispatch.py",
+      "mode": "0755"
+    },
+    {
+      "step_id": "install-broker",
+      "source": "observer/v1.3.0/actions/elan-vps-v1-broker",
+      "destination": "/usr/local/sbin/elan-vps-v1-broker",
+      "mode": "0755"
+    },
+    {
+      "step_id": "install-compose",
+      "source": "observer/v1.3.0/deployment/compose.yaml",
+      "destination": "/opt/elan-vps-v1/compose.yaml",
+      "mode": "0600"
+    },
+    {
+      "step_id": "install-broker-service",
+      "source": "observer/v1.3.0/deployment/systemd/elan-vps-v1-broker.service",
+      "destination": "/etc/systemd/system/elan-vps-v1-broker.service",
+      "mode": "0644"
+    },
+    {
+      "step_id": "install-gateway-service",
+      "source": "observer/v1.3.0/deployment/systemd/elan-vps-v1-gateway.service",
+      "destination": "/etc/systemd/system/elan-vps-v1-gateway.service",
+      "mode": "0644"
+    },
+    {
+      "step_id": "install-rollback-service",
+      "source": "observer/v1.3.0/deployment/systemd/elan-vps-v1-release-rollback.service",
+      "destination": "/etc/systemd/system/elan-vps-v1-release-rollback.service",
+      "mode": "0644"
+    },
+    {
+      "step_id": "install-helper-release-manifest",
+      "source": "observer/v1.3.0/release-manifest.json",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/release-manifest.json",
+      "mode": "0600"
+    },
+    {
+      "step_id": "install-helper-release-contract",
+      "source": "observer/v1.3.0/deployment/release-contract.py",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/release-contract.py",
+      "mode": "0755"
+    },
+    {
+      "step_id": "install-helper-build",
+      "source": "observer/v1.3.0/deployment/build-v1.3-once",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/build-v1.3-once",
+      "mode": "0755"
+    },
+    {
+      "step_id": "install-helper-policy-deriver",
+      "source": "observer/v1.3.0/deployment/derive-policy-v1.3.py",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/derive-policy-v1.3.py",
+      "mode": "0755"
+    },
+    {
+      "step_id": "install-helper-image-inspector",
+      "source": "observer/v1.3.0/deployment/inspect-image-archive.py",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/inspect-image-archive.py",
+      "mode": "0755"
+    },
+    {
+      "step_id": "install-helper-query-templates",
+      "source": "observer/v1.3.0/deployment/en029-m6-query-templates.json",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/en029-m6-query-templates.json",
+      "mode": "0600"
+    },
+    {
+      "step_id": "install-helper-finalizer",
+      "source": "observer/v1.3.0/deployment/finalize-v1.3",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/finalize-v1.3",
+      "mode": "0755"
+    },
+    {
+      "step_id": "install-helper-activator",
+      "source": "observer/v1.3.0/deployment/activate-v1.3",
+      "destination": "/usr/local/lib/elan-vps-v1/releases/1.3.2/activate-v1.3",
+      "mode": "0755"
+    }
+  ],
+  "legacy_mutable_helpers": [
+    "/usr/local/lib/elan-vps-v1/build-v1.3-once",
+    "/usr/local/lib/elan-vps-v1/inspect-image-archive.py",
+    "/usr/local/lib/elan-vps-v1/derive-policy-v1.3.py",
+    "/usr/local/lib/elan-vps-v1/finalize-v1.3",
+    "/usr/local/lib/elan-vps-v1/activate-v1.3"
+  ]
+}

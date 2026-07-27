@@ -1,0 +1,7 @@
+[Unit]
+Description=EN-034 restore original V1.3.1 policy before V1.3.2 build
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/install -m 600 /var/lib/elan-vps-v1/rollback-v1.3.2/policy.json /etc/elan-vps-v1/policy.json
+ExecStartPost=/usr/bin/rm -f /etc/systemd/system/elan-vps-v1-en034-restore-policy.service
