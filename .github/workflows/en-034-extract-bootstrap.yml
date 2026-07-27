@@ -6,6 +6,12 @@ on:
       - en-034-bootstrap-v1.3.2
     paths:
       - .github/workflows/en-034-extract-bootstrap.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/en-034-extract-bootstrap.yml
+      - _en034/bootstrap/en-034-m1-v1.3.2.zip
 
 permissions:
   contents: write
@@ -61,6 +67,7 @@ jobs:
           assert hashlib.sha256(unit.encode()).hexdigest()=='b0e189cbe784654e6235255b18e040d6224558727fef164f221e5c913b2665e8'
           PY
       - name: Commit exact components
+        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
