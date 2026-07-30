@@ -1,0 +1,44 @@
+name: EN-041 M3 - Public artifact relay
+
+on:
+  push:
+    branches: [agent/en-041-m3-transfer]
+    paths: [.github/workflows/en-041-m3-transfer.yml]
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/en-041-m3-transfer.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  relay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: en-041-m3-qualified-transfer
+      VPS_SHA256: 01952fc37184c329d4ef970fd32b012bc01d5a2584a04c61377caaf92f2ec8b8
+      MC_SHA256: dac8d4b4283afc92d8dd6ed7f9827ff0e57f4c4b672254dac272f0574d6d7466
+      VPS_URL: "https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-6b80-8210-8334-b31d093c7e17/raw?se=2026-07-30T23:42:59Z&sp=r&sv=2026-02-06&sr=b&scid=d558413f-baec-5df6-af8e-939fdfda0ab4&skoid=ba81670d-b682-4d2d-9682-ac0ffdfb3fa1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-30T07:04:39Z&ske=2026-08-01T07:04:39Z&sks=b&skv=2026-02-06&sig=drMKqKXDSmwWmTxRi4GJqBF%2B46Gt/DcMoqhdKSybTYU%3D"
+      MC_URL: "https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-352c-8210-91e9-5fdde9c7253a/raw?se=2026-07-30T23:43:09Z&sp=r&sv=2026-02-06&sr=b&scid=2225d39a-ec61-501d-95d3-9414bc7dc141&skoid=ba81670d-b682-4d2d-9682-ac0ffdfb3fa1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-30T05:31:52Z&ske=2026-08-01T05:31:52Z&sks=b&skv=2026-02-06&sig=L%2BakM0xpUDyrqzj6hKoRkBYTTBoWuiZMmSWza8bt2SQ%3D"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download and verify exact private artifacts
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/en-041-m3-vps-qualified.zip "$VPS_URL"
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/en-041-m3-mission-control-qualified.zip "$MC_URL"
+          printf '%s  %s\n' "$VPS_SHA256" /tmp/en-041-m3-vps-qualified.zip | sha256sum --check
+          printf '%s  %s\n' "$MC_SHA256" /tmp/en-041-m3-mission-control-qualified.zip | sha256sum --check
+      - name: Publish public checksum-bound relay
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "EN-041/M3 qualified artifact relay" --notes "Temporary checksum-bound relay for production deployment. Contains no secret."
+          fi
+          gh release upload "$RELEASE_TAG" --clobber /tmp/en-041-m3-vps-qualified.zip /tmp/en-041-m3-mission-control-qualified.zip
