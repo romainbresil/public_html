@@ -1,0 +1,37 @@
+name: EN-041 M3 - Mission Control inner asset diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/en-041-m3-mc-inner-diagnostic.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TAG: en-041-m3-mission-control-inner-assets
+      IMAGE_SHA256: a63b4ff44e385724eabc56316af3814b5fb96eb8d0b57d34a6bdb86bb083a2e4
+      COMPOSE_SHA256: a3ea7843f486163a21d57cbaa0d9c5340b0c0d7de29ae794293239ee2ff5d202
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify published inner assets
+        run: |
+          set -euo pipefail
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          for i in $(seq 1 30); do
+            curl -fsSL --retry 2 --output /tmp/image.tar "$base/en-mission-control-production-image.tar" && \
+            curl -fsSL --retry 2 --output /tmp/compose.yml "$base/en-mission-control-production-compose.yml" && break
+            sleep 4
+          done
+          printf '%s  %s\n' "$IMAGE_SHA256" /tmp/image.tar | sha256sum --check
+          printf '%s  %s\n' "$COMPOSE_SHA256" /tmp/compose.yml | sha256sum --check
+          test "$(stat -c %s /tmp/image.tar)" -eq 160298496
+          test "$(stat -c %s /tmp/compose.yml)" -eq 5526
+          grep -q 'en-mission-control-service' /tmp/compose.yml
+          grep -q 'en-mission-control-mcp' /tmp/compose.yml
