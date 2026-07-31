@@ -1,4 +1,4 @@
-name: EN-041 M3 - Public artifact relay
+name: EN-041 M3 - Qualified artifact diagnostics
 
 on:
   push:
@@ -9,36 +9,63 @@ on:
     paths: [.github/workflows/en-041-m3-transfer.yml]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  relay:
+  diagnose:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       RELEASE_TAG: en-041-m3-qualified-transfer
       VPS_SHA256: 01952fc37184c329d4ef970fd32b012bc01d5a2584a04c61377caaf92f2ec8b8
       MC_SHA256: dac8d4b4283afc92d8dd6ed7f9827ff0e57f4c4b672254dac272f0574d6d7466
-      VPS_URL: "https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-6b80-8210-8334-b31d093c7e17/raw?se=2026-07-30T23:42:59Z&sp=r&sv=2026-02-06&sr=b&scid=d558413f-baec-5df6-af8e-939fdfda0ab4&skoid=ba81670d-b682-4d2d-9682-ac0ffdfb3fa1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-30T07:04:39Z&ske=2026-08-01T07:04:39Z&sks=b&skv=2026-02-06&sig=drMKqKXDSmwWmTxRi4GJqBF%2B46Gt/DcMoqhdKSybTYU%3D"
-      MC_URL: "https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-352c-8210-91e9-5fdde9c7253a/raw?se=2026-07-30T23:43:09Z&sp=r&sv=2026-02-06&sr=b&scid=2225d39a-ec61-501d-95d3-9414bc7dc141&skoid=ba81670d-b682-4d2d-9682-ac0ffdfb3fa1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-30T05:31:52Z&ske=2026-08-01T05:31:52Z&sks=b&skv=2026-02-06&sig=L%2BakM0xpUDyrqzj6hKoRkBYTTBoWuiZMmSWza8bt2SQ%3D"
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Download and verify exact private artifacts
+      - name: Download and verify public relay assets
         run: |
           set -euo pipefail
-          curl --fail --location --retry 4 --retry-all-errors --output /tmp/en-041-m3-vps-qualified.zip "$VPS_URL"
-          curl --fail --location --retry 4 --retry-all-errors --output /tmp/en-041-m3-mission-control-qualified.zip "$MC_URL"
-          printf '%s  %s\n' "$VPS_SHA256" /tmp/en-041-m3-vps-qualified.zip | sha256sum --check
-          printf '%s  %s\n' "$MC_SHA256" /tmp/en-041-m3-mission-control-qualified.zip | sha256sum --check
-      - name: Publish public checksum-bound relay
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}"
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/vps.zip "$base/en-041-m3-vps-qualified.zip"
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/mc.zip "$base/en-041-m3-mission-control-qualified.zip"
+          printf '%s  %s\n' "$VPS_SHA256" /tmp/vps.zip | sha256sum --check
+          printf '%s  %s\n' "$MC_SHA256" /tmp/mc.zip | sha256sum --check
+      - name: Exercise the VPS qualified archive contract
         run: |
           set -euo pipefail
-          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "EN-041/M3 qualified artifact relay" --notes "Temporary checksum-bound relay for production deployment. Contains no secret."
-          fi
-          gh release upload "$RELEASE_TAG" --clobber /tmp/en-041-m3-vps-qualified.zip /tmp/en-041-m3-mission-control-qualified.zip
+          python3 - <<'PY'
+          import hashlib,json,pathlib,shutil,stat,tarfile,tempfile,zipfile
+          z=pathlib.Path('/tmp/vps.zip'); version='1.3.9'; stem=f'elan-vps-v{version}'
+          expected={f'{stem}-package.tar.gz',f'{stem}-package.tar.gz.sha256',f'{stem}-distribution-manifest.json',f'{stem}-image.tar',f'{stem}-image.tar.sha256',f'{stem}-image-identity.json'}
+          h=lambda p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+          with tempfile.TemporaryDirectory() as td:
+            root=pathlib.Path(td); extract=root/'extract'; extract.mkdir(); context=root/'context'; context.mkdir()
+            with zipfile.ZipFile(z) as a:
+              infos=a.infolist(); names={i.filename for i in infos}; assert names==expected and len(infos)==6,(names,expected)
+              assert a.testzip() is None
+              for i in infos:
+                mode=i.external_attr>>16; assert not i.is_dir() and not(i.flag_bits&1) and '/' not in i.filename and (not mode or stat.S_IFMT(mode) in {0,stat.S_IFREG}),i.filename
+                with a.open(i) as src,(extract/i.filename).open('wb') as dst: shutil.copyfileobj(src,dst,1024*1024)
+            package=extract/f'{stem}-package.tar.gz'; image=extract/f'{stem}-image.tar'
+            declared=lambda p:p.read_text(encoding='ascii').split()[0]
+            assert declared(extract/f'{stem}-package.tar.gz.sha256')==h(package)
+            assert declared(extract/f'{stem}-image.tar.sha256')==h(image)
+            manifest=json.loads((extract/f'{stem}-distribution-manifest.json').read_text())
+            assert manifest['version']==version and manifest['source_commit']=='a617a3ddbfca4e3bab414a706a4d8d74278ace52'
+            assert manifest['image_tar_sha256']==h(image)
+            assert manifest['image_identity_sha256']==h(extract/f'{stem}-image-identity.json')
+            with tarfile.open(package,'r:gz') as a:a.extractall(context,filter='data')
+            source_root=manifest['source_root']; internal=json.loads((context/source_root/'distribution-manifest.json').read_text())
+            assert internal==manifest
+            assert manifest['release_manifest_sha256']==h(context/source_root/'release-manifest.json')
+            for relative,spec in manifest['files'].items():
+              p=context/relative; assert p.is_file() and p.stat().st_size==spec['size_bytes'] and h(p)==spec['sha256'],relative
+            shutil.copy2(image,context/image.name); shutil.copy2(extract/f'{stem}-image.tar.sha256',context); shutil.copy2(extract/f'{stem}-image-identity.json',context)
+            print(json.dumps({'verdict':'PASS','zip_bytes':z.stat().st_size,'image_bytes':image.stat().st_size,'package_bytes':package.stat().st_size,'context_bytes':sum(p.stat().st_size for p in context.rglob('*') if p.is_file()),'zip_entries':sorted(expected)},indent=2))
+          PY
+      - name: List Mission Control archive entries
+        run: |
+          set -euo pipefail
+          unzip -t /tmp/mc.zip
+          unzip -l /tmp/mc.zip
