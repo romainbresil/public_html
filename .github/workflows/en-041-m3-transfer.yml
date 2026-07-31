@@ -1,0 +1,71 @@
+name: EN-041 M3 - Qualified artifact diagnostics
+
+on:
+  push:
+    branches: [agent/en-041-m3-transfer]
+    paths: [.github/workflows/en-041-m3-transfer.yml]
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/en-041-m3-transfer.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: en-041-m3-qualified-transfer
+      VPS_SHA256: 01952fc37184c329d4ef970fd32b012bc01d5a2584a04c61377caaf92f2ec8b8
+      MC_SHA256: dac8d4b4283afc92d8dd6ed7f9827ff0e57f4c4b672254dac272f0574d6d7466
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download and verify public relay assets
+        run: |
+          set -euo pipefail
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}"
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/vps.zip "$base/en-041-m3-vps-qualified.zip"
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/mc.zip "$base/en-041-m3-mission-control-qualified.zip"
+          printf '%s  %s\n' "$VPS_SHA256" /tmp/vps.zip | sha256sum --check
+          printf '%s  %s\n' "$MC_SHA256" /tmp/mc.zip | sha256sum --check
+      - name: Exercise the VPS qualified archive contract
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,pathlib,shutil,stat,tarfile,tempfile,zipfile
+          z=pathlib.Path('/tmp/vps.zip'); version='1.3.9'; stem=f'elan-vps-v{version}'
+          expected={f'{stem}-package.tar.gz',f'{stem}-package.tar.gz.sha256',f'{stem}-distribution-manifest.json',f'{stem}-image.tar',f'{stem}-image.tar.sha256',f'{stem}-image-identity.json'}
+          h=lambda p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+          with tempfile.TemporaryDirectory() as td:
+            root=pathlib.Path(td); extract=root/'extract'; extract.mkdir(); context=root/'context'; context.mkdir()
+            with zipfile.ZipFile(z) as a:
+              infos=a.infolist(); names={i.filename for i in infos}; assert names==expected and len(infos)==6,(names,expected)
+              assert a.testzip() is None
+              for i in infos:
+                mode=i.external_attr>>16; assert not i.is_dir() and not(i.flag_bits&1) and '/' not in i.filename and (not mode or stat.S_IFMT(mode) in {0,stat.S_IFREG}),i.filename
+                with a.open(i) as src,(extract/i.filename).open('wb') as dst: shutil.copyfileobj(src,dst,1024*1024)
+            package=extract/f'{stem}-package.tar.gz'; image=extract/f'{stem}-image.tar'
+            declared=lambda p:p.read_text(encoding='ascii').split()[0]
+            assert declared(extract/f'{stem}-package.tar.gz.sha256')==h(package)
+            assert declared(extract/f'{stem}-image.tar.sha256')==h(image)
+            manifest=json.loads((extract/f'{stem}-distribution-manifest.json').read_text())
+            assert manifest['version']==version and manifest['source_commit']=='a617a3ddbfca4e3bab414a706a4d8d74278ace52'
+            assert manifest['image_tar_sha256']==h(image)
+            assert manifest['image_identity_sha256']==h(extract/f'{stem}-image-identity.json')
+            with tarfile.open(package,'r:gz') as a:a.extractall(context,filter='data')
+            source_root=manifest['source_root']; internal=json.loads((context/source_root/'distribution-manifest.json').read_text())
+            assert internal==manifest
+            assert manifest['release_manifest_sha256']==h(context/source_root/'release-manifest.json')
+            for relative,spec in manifest['files'].items():
+              p=context/relative; assert p.is_file() and p.stat().st_size==spec['size_bytes'] and h(p)==spec['sha256'],relative
+            shutil.copy2(image,context/image.name); shutil.copy2(extract/f'{stem}-image.tar.sha256',context); shutil.copy2(extract/f'{stem}-image-identity.json',context)
+            print(json.dumps({'verdict':'PASS','zip_bytes':z.stat().st_size,'image_bytes':image.stat().st_size,'package_bytes':package.stat().st_size,'context_bytes':sum(p.stat().st_size for p in context.rglob('*') if p.is_file()),'zip_entries':sorted(expected)},indent=2))
+          PY
+      - name: List Mission Control archive entries
+        run: |
+          set -euo pipefail
+          unzip -t /tmp/mc.zip
+          unzip -l /tmp/mc.zip

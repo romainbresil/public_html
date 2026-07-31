@@ -1,0 +1,45 @@
+name: EN-041 M3 - Qualified upgrade relay
+
+on:
+  push:
+    branches: [agent/en-041-m3-transfer]
+    paths: [.github/workflows/en-041-m3-upgrade-transfer.yml]
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/en-041-m3-upgrade-transfer.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  relay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: en-041-m3-qualified-upgrade-transfer
+      HOTFIX_SHA256: e746378eeee3a81c829feea2b2af8cb064c2b0bb18a31dab9ac41283180bddf7
+      FIXED_SHA256: 5e4dd9965b6390bffc65dfc0655a001e6108632f4dc2ef9d4336025d16545901
+      HOTFIX_URL: "https://sdmntprpolandcentral.oaiusercontent.com/files/00000000-0c20-820a-91cd-83b88d34a351/raw?se=2026-07-31T00:29:10Z&sp=r&sv=2026-02-06&sr=b&scid=5e43206f-e0af-53fb-95c8-2156a1587b48&skoid=002823aa-689d-47ca-9347-108c20f4f00d&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-30T23:17:22Z&ske=2026-08-01T23:17:22Z&sks=b&skv=2026-02-06&sig=/NAVA%2BW4W7SfXCiJ2yYbmNCcGicEDprfgUmCLDKx3PA%3D"
+      FIXED_URL: "https://sdmntprnortheu.oaiusercontent.com/files/00000000-6b10-81f4-8b87-67b715e9c56b/raw?se=2026-07-31T00:29:26Z&sp=r&sv=2026-02-06&sr=b&scid=5607f669-9b8f-52fd-915b-a08ed3e9fdbe&skoid=002823aa-689d-47ca-9347-108c20f4f00d&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-30T23:17:21Z&ske=2026-08-01T23:17:21Z&sks=b&skv=2026-02-06&sig=Se549h23SvlkmjAYs3VGHbVpvJsCijDvNM4CgnSPIgI%3D"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Download and verify exact qualified archives
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/elan-vps-v1.3.8-qualified-upgrade-hotfix.zip "$HOTFIX_URL"
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/elan-vps-v1.3.9-upgrade-fixed.zip "$FIXED_URL"
+          printf '%s  %s\n' "$HOTFIX_SHA256" /tmp/elan-vps-v1.3.8-qualified-upgrade-hotfix.zip | sha256sum --check
+          printf '%s  %s\n' "$FIXED_SHA256" /tmp/elan-vps-v1.3.9-upgrade-fixed.zip | sha256sum --check
+          unzip -t /tmp/elan-vps-v1.3.8-qualified-upgrade-hotfix.zip
+          unzip -t /tmp/elan-vps-v1.3.9-upgrade-fixed.zip
+      - name: Publish checksum-bound public relay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "EN-041/M3 qualified upgrade relay" --notes "Temporary checksum-bound relay. Contains no secret."
+          fi
+          gh release upload "$RELEASE_TAG" --clobber /tmp/elan-vps-v1.3.8-qualified-upgrade-hotfix.zip /tmp/elan-vps-v1.3.9-upgrade-fixed.zip
