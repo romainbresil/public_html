@@ -1,0 +1,52 @@
+name: EN-041 M3 - Mission Control inner asset relay
+
+on:
+  push:
+    branches: [agent/en-041-m3-transfer]
+    paths: [.github/workflows/en-041-m3-mc-inner-relay.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  relay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SOURCE_TAG: en-041-m3-qualified-transfer
+      TARGET_TAG: en-041-m3-mission-control-inner-assets
+      OUTER_SHA256: dac8d4b4283afc92d8dd6ed7f9827ff0e57f4c4b672254dac272f0574d6d7466
+      IMAGE_SHA256: a63b4ff44e385724eabc56316af3814b5fb96eb8d0b57d34a6bdb86bb083a2e4
+      COMPOSE_SHA256: a3ea7843f486163a21d57cbaa0d9c5340b0c0d7de29ae794293239ee2ff5d202
+      IDENTITY_SHA256: 23c5ea758bb3c39619489c73cbd695e24ba5535c544b9cb925fbf36aa465520b
+      QUALIFICATION_SHA256: e185acbf01f2328b92c127013a76bc4f2a139eb0268b409102524d2128a37f5b
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract and verify exact inner assets
+        run: |
+          set -euo pipefail
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${SOURCE_TAG}"
+          curl --fail --location --retry 4 --retry-all-errors --output /tmp/mc.zip "$base/en-041-m3-mission-control-qualified.zip"
+          printf '%s  %s\n' "$OUTER_SHA256" /tmp/mc.zip | sha256sum --check
+          mkdir -p /tmp/mc-assets
+          unzip -q /tmp/mc.zip -d /tmp/mc-assets
+          cd /tmp/mc-assets
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 6
+          printf '%s  %s\n' "$IMAGE_SHA256" en-mission-control-production-image.tar | sha256sum --check
+          printf '%s  %s\n' "$COMPOSE_SHA256" en-mission-control-production-compose.yml | sha256sum --check
+          printf '%s  %s\n' "$IDENTITY_SHA256" en-mission-control-production-image-identity.json | sha256sum --check
+          printf '%s  %s\n' "$QUALIFICATION_SHA256" en-mission-control-production-image-qualification.json | sha256sum --check
+          sha256sum --check en-mission-control-production-image.tar.sha256
+          sha256sum --check en-mission-control-production-compose.yml.sha256
+          test "$(stat -c %s en-mission-control-production-image.tar)" -eq 160298496
+          test "$(stat -c %s en-mission-control-production-compose.yml)" -eq 5526
+      - name: Publish checksum-bound inner assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TARGET_TAG" >/dev/null 2>&1; then
+            gh release create "$TARGET_TAG" --target "$GITHUB_SHA" --title "EN-041/M3 Mission Control inner assets" --notes "Exact qualified inner assets relayed from the checksum-bound production archive."
+          fi
+          gh release upload "$TARGET_TAG" --clobber /tmp/mc-assets/*
