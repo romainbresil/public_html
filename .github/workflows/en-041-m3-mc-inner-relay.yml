@@ -40,8 +40,8 @@ jobs:
           printf '%s  %s\n' "$COMPOSE_SHA256" en-mission-control-production-compose.yml | sha256sum --check
           printf '%s  %s\n' "$IDENTITY_SHA256" en-mission-control-production-image-identity.json | sha256sum --check
           printf '%s  %s\n' "$QUALIFICATION_SHA256" en-mission-control-production-image-qualification.json | sha256sum --check
-          sha256sum --check en-mission-control-production-image.tar.sha256
-          sha256sum --check en-mission-control-production-compose.yml.sha256
+          grep -q "$IMAGE_SHA256" en-mission-control-production-image.tar.sha256
+          grep -q "$COMPOSE_SHA256" en-mission-control-production-compose.yml.sha256
           test "$(stat -c %s en-mission-control-production-image.tar)" -eq 160298496
           test "$(stat -c %s en-mission-control-production-compose.yml)" -eq 5526
       - name: Publish checksum-bound inner assets
