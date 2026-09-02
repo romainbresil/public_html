@@ -43,6 +43,7 @@ Environment=ELAN_BRIDGE_CONTROL_BASE_PATH=.elan-vps-bridge
 Environment=ELAN_BRIDGE_POLL_SECONDS=3
 Environment=ELAN_BRIDGE_RESULT_HOST=127.0.0.1
 Environment=ELAN_BRIDGE_RESULT_PORT=8789
+Environment=ELAN_BRIDGE_RETURN_ENDPOINT=https://romainbecquart.com/__elan-vps-bridge-return.html
 ExecStart=/usr/bin/python3 $APP_DIR/bridge_worker.py
 Restart=on-failure
 RestartSec=2
@@ -57,9 +58,13 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now elan-web-vps-bridge.service
+systemctl enable elan-web-vps-bridge.service >/dev/null
+systemctl restart elan-web-vps-bridge.service
 systemctl is-active --quiet elan-web-vps-bridge.service
-curl -fsS http://127.0.0.1:8789/healthz >/dev/null
-printf 'PUBLIC_CERT_BEGIN\n'
-cat "$STATE_DIR/public.crt"
-printf 'PUBLIC_CERT_END\n'
+for _ in $(seq 1 20); do
+  if curl -fsS http://127.0.0.1:8789/healthz >/dev/null 2>&1 || curl -fsS http://10.0.1.1:8789/healthz >/dev/null 2>&1; then
+    exit 0
+  fi
+  sleep 0.25
+done
+exit 1
