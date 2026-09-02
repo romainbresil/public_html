@@ -1,35 +1,73 @@
 # Élan Naturel — ChatGPT Web VPS bridge control channel
 
-This branch is the minimal transport mailbox for the ChatGPT Web ↔ VPS maintenance bridge.
+This branch contains the public, secret-free bootstrap assets for the ChatGPT Web ↔ VPS bridge.
 
-## Security contract
+## Canonical inbound transport
 
-- Never commit plaintext VPS commands here.
-- ChatGPT Web publishes only encrypted **intent events**.
-- `.elan-vps-bridge/latest.txt` contains only the filename of the newest encrypted intent envelope.
-- Envelopes under `.elan-vps-bridge/jobs/` are CMS-encrypted and base64-encoded.
-- The VPS private key never leaves the VPS.
-- The corresponding public certificate is published under `.elan-vps-bridge/public.crt`.
-- Bootstrap source under `.elan-vps-bridge/bootstrap/` is public by design and contains no credentials.
-- Results are posted by the VPS to the dedicated Netlify form `elan-vps-bridge-return`, which ChatGPT Web can read through its connected Netlify surface.
+The normal inbox is now **GitHub Issues**, not `latest.txt` + CMS envelopes.
 
-## Accepted intent contract
+A consumable intent Issue must satisfy all of the following:
 
-The decrypted payload is restricted to:
+- repository: `romainbresil/public_html`;
+- state: open;
+- author: exactly `romainbresil`;
+- title prefix: exactly `EN-INTENT —`;
+- body: pure JSON matching the closed business-intent contract.
 
-- `intent_code`: `DIAGNOSTIC_REQ`, `SYSTEM_REFRESH`, or `STATE_TOGGLE`;
-- `context.target`: currently `elan-bridge` only;
-- `context.state`: `active` or `inactive` only for `STATE_TOGGLE`;
-- correlation fields `id` and `read_token`.
+Example:
 
-No `command`, SQL, filesystem path, working directory, timeout or other executable free-form field is accepted.
+```json
+{
+  "intent_code": "DIAGNOSTIC_REQ",
+  "context": {
+    "target": "elan-bridge"
+  }
+}
+```
 
-## Event naming
+No shell command, SQL, filesystem path, timeout, credential or other executable free-form parameter is accepted.
 
-`<event-id>.cms.b64`
+## Runtime
 
-The worker polls raw `latest.txt`, not the GitHub API. It claims each event id locally before backend resolution and never blindly replays a claimed event.
+Public bootstrap payloads live under `.elan-vps-bridge/bootstrap/` and contain no credentials.
 
-## Current transition
+The VPS runs:
 
-`intentdiag-20260902-001` is the first ChatGPT Web `DIAGNOSTIC_REQ` intent. Publication and pointer dispatch were both accepted by the ChatGPT Web GitHub connector. It remains pending until the already-running VPS worker is upgraded once from the legacy command contract to the intent-only runtime.
+- `issue_inbox.py` as the public-Issue adapter;
+- `bridge_worker.py` as the deterministic intent engine.
+
+The VPS reads public GitHub data only. It stores no GitHub PAT and never writes to GitHub.
+
+## Return channel
+
+Results are posted to the dedicated Netlify form `elan-vps-bridge-return`, which ChatGPT Web reads through its connected Netlify surface.
+
+## Replay rule
+
+Each accepted Issue gets a deterministic local id `gh-issue-<number>` and an exclusive claim under the VPS state directory. A claimed Issue is never blindly replayed.
+
+After successful readback, ChatGPT Web may close the Issue as `completed`.
+
+## Qualified state
+
+`DIAGNOSTIC_REQ + elan-bridge` is E2E-qualified and repeatable.
+
+- probe Issue #3: rejected as designed;
+- Issue #4: completed healthy and returned through Netlify;
+- Issue #5: created by ChatGPT Web after deployment, completed healthy and returned through Netlify without Codex.
+
+`SYSTEM_REFRESH` and `STATE_TOGGLE` are declared in the backend but are not yet E2E-qualified and must not be treated as acquired capabilities.
+
+## Legacy assets
+
+The following remain only as historical evidence and rollback material:
+
+- `.elan-vps-bridge/latest.txt`;
+- `.elan-vps-bridge/jobs/*.cms.b64`;
+- `.elan-vps-bridge/public.crt`.
+
+Do not use or replay them as the normal dispatch path.
+
+## Terminal transport state
+
+`ISSUES_INBOX_PASS / DIAGNOSTIC_E2E_REPEATABLE / NETLIFY_RETURN_PASS / CODEX_OUT_OF_NORMAL_PATH`
