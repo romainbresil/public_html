@@ -14,8 +14,9 @@ command -v curl >/dev/null
 
 install -d -o "$RUN_USER" -g "$RUN_USER" -m 0750 "$APP_DIR" "$STATE_DIR" "$STATE_DIR/claims" "$STATE_DIR/results" "$STATE_DIR/incoming"
 curl -fsSL "$BASE_RAW/bridge_worker.py" -o "$APP_DIR/bridge_worker.py"
-chown "$RUN_USER:$RUN_USER" "$APP_DIR/bridge_worker.py"
-chmod 0755 "$APP_DIR/bridge_worker.py"
+curl -fsSL "$BASE_RAW/issue_inbox.py" -o "$APP_DIR/issue_inbox.py"
+chown "$RUN_USER:$RUN_USER" "$APP_DIR/bridge_worker.py" "$APP_DIR/issue_inbox.py"
+chmod 0755 "$APP_DIR/bridge_worker.py" "$APP_DIR/issue_inbox.py"
 
 if [[ ! -s "$STATE_DIR/private.key" || ! -s "$STATE_DIR/public.crt" ]]; then
   sudo -u "$RUN_USER" openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 3650 \
@@ -38,13 +39,12 @@ Group=$RUN_USER
 Environment=PYTHONUNBUFFERED=1
 Environment=ELAN_BRIDGE_STATE_ROOT=$STATE_DIR
 Environment=ELAN_BRIDGE_CONTROL_REPO=romainbresil/public_html
-Environment=ELAN_BRIDGE_CONTROL_REF=elan-vps-bridge-control-v1
-Environment=ELAN_BRIDGE_CONTROL_BASE_PATH=.elan-vps-bridge
-Environment=ELAN_BRIDGE_POLL_SECONDS=3
+Environment=ELAN_BRIDGE_ISSUE_AUTHOR=romainbresil
+Environment=ELAN_BRIDGE_POLL_SECONDS=60
 Environment=ELAN_BRIDGE_RESULT_HOST=127.0.0.1
 Environment=ELAN_BRIDGE_RESULT_PORT=8789
 Environment=ELAN_BRIDGE_RETURN_ENDPOINT=https://romainbecquart.com/__elan-vps-bridge-return.html
-ExecStart=/usr/bin/python3 $APP_DIR/bridge_worker.py
+ExecStart=/usr/bin/python3 $APP_DIR/issue_inbox.py
 Restart=on-failure
 RestartSec=2
 NoNewPrivileges=true
