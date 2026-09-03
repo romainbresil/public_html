@@ -75,8 +75,10 @@ def patch() -> None:
         if chunk_ordinal in record:
             raise CommandPortError("broker_g6_schema_duplicate_chunk")
         record[chunk_ordinal] = chunk
+
     if sorted(grouped) != list(range(1, len(grouped) + 1)):
         raise CommandPortError("broker_g6_schema_record_sequence_incomplete")
+
     records: list[dict] = []
     for record_ordinal in range(1, len(grouped) + 1):
         chunks = grouped[record_ordinal]
