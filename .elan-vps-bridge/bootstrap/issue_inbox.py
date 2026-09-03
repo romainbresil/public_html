@@ -24,6 +24,8 @@ G4_COMMERCIAL_INTENT = "EN2_G4_COMMERCIAL_CANARY_WRITE"
 G4_COMMERCIAL_CONTEXT = {"target": "en2-g4-commercial-canary"}
 G5_KNOWLEDGE_INTENT = "EN2_G5_KNOWLEDGE_CAPTURE_APPLY"
 G5_KNOWLEDGE_CONTEXT = {"target": "en2-g5-knowledge-capture"}
+G6_SCHEMA_READ_INTENT = "EN2_G6_DECISION_SCHEMA_READ"
+G6_SCHEMA_READ_CONTEXT = {"target": "en2-g6-decision-schema"}
 SELF_UPDATE_INTENT = "BRIDGE_SELF_UPDATE"
 SELF_UPDATE_MANIFEST_PATH = ".elan-vps-bridge/bootstrap/runtime-manifest.json"
 SELF_UPDATE_RUNTIME_FILES = ("issue_inbox.py", "bridge_worker.py", "command_port.py")
@@ -118,6 +120,10 @@ def parse_issue_intent(issue: dict) -> dict | None:
         return job
     if job["intent_code"] == G5_KNOWLEDGE_INTENT:
         if job["context"] != G5_KNOWLEDGE_CONTEXT:
+            return None
+        return job
+    if job["intent_code"] == G6_SCHEMA_READ_INTENT:
+        if job["context"] != G6_SCHEMA_READ_CONTEXT:
             return None
         return job
     if job["intent_code"] == SELF_UPDATE_INTENT:
@@ -312,6 +318,12 @@ def _execute_job(job: dict) -> dict:
     if job["intent_code"] == G5_KNOWLEDGE_INTENT:
         try:
             payload = command_port.run_en2_g5_knowledge_capture_v1(job["id"])
+            return _completed(job, started, {"status": "PASS", **payload})
+        except command_port.CommandPortError as exc:
+            return _failed(job, started, str(exc))
+    if job["intent_code"] == G6_SCHEMA_READ_INTENT:
+        try:
+            payload = command_port.read_en2_g6_decision_schema_v1(job["id"])
             return _completed(job, started, {"status": "PASS", **payload})
         except command_port.CommandPortError as exc:
             return _failed(job, started, str(exc))

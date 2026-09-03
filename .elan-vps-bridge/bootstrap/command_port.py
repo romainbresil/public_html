@@ -10,6 +10,8 @@ from typing import Callable
 
 BROKER_SOCKET_PATH_DEFAULT = "/run/elan-vps-v1/control.sock"
 READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"
+G6_SCHEMA_COLUMNS_TEMPLATE = "en029_m6_schema_columns_v1"
+G6_SCHEMA_FUNCTIONS_TEMPLATE = "en029_m6_schema_functions_v1"
 G4_COMMAND_TEMPLATE = "en029_m6_chatgpt_voice_register_v1"
 G4_EXECUTION_CLASS = "mutating_technical_change"
 G5_EXECUTION_CLASS = "reversible_technical_change"
@@ -481,5 +483,131 @@ def run_en2_g5_knowledge_capture_v1(
         "apply": apply_result,
         "inventory": inventory,
         "transaction_assertions_embedded": True,
+        "external_action_allowed": False,
+    }
+
+
+
+def _parse_g6_values(result: dict, expected_template: str) -> list[dict]:
+    if not isinstance(result, dict) or result.get("template") != expected_template:
+        raise CommandPortError("broker_g6_schema_result_invalid")
+    values = result.get("values")
+    if not isinstance(values, list):
+        raise CommandPortError("broker_g6_schema_values_invalid")
+    parsed = []
+    for value in values:
+        if not isinstance(value, str):
+            raise CommandPortError("broker_g6_schema_value_invalid")
+        try:
+            item = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise CommandPortError("broker_g6_schema_json_invalid") from exc
+        if not isinstance(item, dict):
+            raise CommandPortError("broker_g6_schema_json_invalid")
+        parsed.append(item)
+    return parsed
+
+
+def read_en2_g6_decision_schema_v1(
+    request_id: str,
+    request_fn: Callable[[dict], dict] = broker_request,
+) -> dict:
+    key = _safe_key(request_id).lower()
+    prepared = request_fn({
+        "operation": "prepare_procedure",
+        "mission_id": "EN2-G6",
+        "work_id": "DECISION-SCHEMA-READ",
+        "technical_authority": "JA-023",
+        "idempotency_key": f"en2-g6-schema-read-{key}",
+        "procedure": {
+            "procedure_id": f"en2-g6-schema-read-{key}",
+            "title": "EN2-G6 bounded decision schema read",
+            "run_budget_seconds": 90,
+            "steps": [
+                {
+                    "step_id": "schema-columns",
+                    "primitive": "postgres_query_template",
+                    "args": {
+                        "profile": "business",
+                        "template": G6_SCHEMA_COLUMNS_TEMPLATE,
+                        "parameters": [],
+                    },
+                    "timeout_seconds": 30,
+                },
+                {
+                    "step_id": "schema-functions",
+                    "primitive": "postgres_query_template",
+                    "args": {
+                        "profile": "business",
+                        "template": G6_SCHEMA_FUNCTIONS_TEMPLATE,
+                        "parameters": [],
+                    },
+                    "timeout_seconds": 30,
+                },
+            ],
+        },
+    })
+    plan = prepared.get("plan")
+    if not isinstance(plan, dict) or plan.get("risk") != "read_only":
+        raise CommandPortError("broker_g6_schema_plan_not_read_only")
+    executed = request_fn({
+        "operation": "start_run",
+        "plan_id": plan.get("plan_id"),
+        "execution_token": plan.get("execution_token"),
+        "procedure_sha256": plan.get("procedure_sha256"),
+        "execution_class": "read_only",
+        "mode": "sync",
+    })
+    receipt = executed.get("receipt")
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("status") != "succeeded"
+        or receipt.get("execution_class") != "read_only"
+    ):
+        raise CommandPortError("broker_g6_schema_read_failed")
+    steps = receipt.get("steps")
+    if not isinstance(steps, list) or len(steps) != 2:
+        raise CommandPortError("broker_g6_schema_receipt_invalid")
+    by_id = {
+        step.get("step_id"): step
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("step_id"), str)
+    }
+    if set(by_id) != {"schema-columns", "schema-functions"}:
+        raise CommandPortError("broker_g6_schema_step_mismatch")
+    if any(by_id[name].get("status") != "success" for name in by_id):
+        raise CommandPortError("broker_g6_schema_step_failed")
+
+    columns_all = _parse_g6_values(
+        by_id["schema-columns"].get("result"),
+        G6_SCHEMA_COLUMNS_TEMPLATE,
+    )
+    functions_all = _parse_g6_values(
+        by_id["schema-functions"].get("result"),
+        G6_SCHEMA_FUNCTIONS_TEMPLATE,
+    )
+    allowed_tables = {"dossiers", "dossier_decisions", "dossier_events", "parties"}
+    columns = [
+        item
+        for item in columns_all
+        if item.get("kind") == "column" and item.get("table") in allowed_tables
+    ]
+    functions = [
+        item
+        for item in functions_all
+        if item.get("kind") == "function"
+        and item.get("name") == "record_human_decision_v1"
+    ]
+    if not any(item.get("table") == "dossier_decisions" for item in columns):
+        raise CommandPortError("g6_decision_columns_missing")
+    if not functions:
+        raise CommandPortError("g6_record_human_decision_missing")
+    return {
+        "status": "succeeded",
+        "execution_class": "read_only",
+        "run_id": receipt.get("run_id"),
+        "columns": columns,
+        "functions": functions,
+        "business_rows_emitted": False,
         "external_action_allowed": False,
     }
