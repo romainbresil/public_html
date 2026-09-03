@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import base64
+import binascii
 import hashlib
 import json
 import os
@@ -10,8 +12,8 @@ from typing import Callable
 
 BROKER_SOCKET_PATH_DEFAULT = "/run/elan-vps-v1/control.sock"
 READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"
-G6_SCHEMA_COLUMNS_TEMPLATE = "en029_m6_schema_columns_v1"
-G6_SCHEMA_FUNCTIONS_TEMPLATE = "en029_m6_schema_functions_v1"
+G6_SCHEMA_COLUMNS_TEMPLATE = "en029_m6_schema_columns_chunks_v2"
+G6_SCHEMA_FUNCTIONS_TEMPLATE = "en029_m6_schema_functions_chunks_v2"
 G4_COMMAND_TEMPLATE = "en029_m6_chatgpt_voice_register_v1"
 G4_EXECUTION_CLASS = "mutating_technical_change"
 G5_EXECUTION_CLASS = "reversible_technical_change"
@@ -488,24 +490,65 @@ def run_en2_g5_knowledge_capture_v1(
 
 
 
-def _parse_g6_values(result: dict, expected_template: str) -> list[dict]:
+def _reconstruct_g6_capture(result: dict, expected_template: str, expected_capture: str) -> list[dict]:
     if not isinstance(result, dict) or result.get("template") != expected_template:
         raise CommandPortError("broker_g6_schema_result_invalid")
     values = result.get("values")
-    if not isinstance(values, list):
+    if not isinstance(values, list) or not values:
         raise CommandPortError("broker_g6_schema_values_invalid")
-    parsed = []
+    grouped: dict[int, dict[int, str]] = {}
+    counts: dict[int, int] = {}
+    expected_keys = {"kind", "capture", "record_ordinal", "chunk_ordinal", "chunk_count", "payload_base64_chunk"}
     for value in values:
-        if not isinstance(value, str):
+        if not isinstance(value, str) or len(value) > 4096:
             raise CommandPortError("broker_g6_schema_value_invalid")
         try:
             item = json.loads(value)
         except json.JSONDecodeError as exc:
-            raise CommandPortError("broker_g6_schema_json_invalid") from exc
-        if not isinstance(item, dict):
-            raise CommandPortError("broker_g6_schema_json_invalid")
-        parsed.append(item)
-    return parsed
+            raise CommandPortError("broker_g6_schema_chunk_json_invalid") from exc
+        if not isinstance(item, dict) or set(item) != expected_keys:
+            raise CommandPortError("broker_g6_schema_chunk_contract_invalid")
+        if item.get("kind") != "capture_chunk" or item.get("capture") != expected_capture:
+            raise CommandPortError("broker_g6_schema_chunk_contract_invalid")
+        record_ordinal = item.get("record_ordinal")
+        chunk_ordinal = item.get("chunk_ordinal")
+        chunk_count = item.get("chunk_count")
+        chunk = item.get("payload_base64_chunk")
+        if (
+            not isinstance(record_ordinal, int) or record_ordinal < 1
+            or not isinstance(chunk_ordinal, int) or chunk_ordinal < 1
+            or not isinstance(chunk_count, int) or chunk_count < 1
+            or chunk_ordinal > chunk_count
+            or not isinstance(chunk, str) or len(chunk) > 3000
+        ):
+            raise CommandPortError("broker_g6_schema_chunk_contract_invalid")
+        if record_ordinal in counts and counts[record_ordinal] != chunk_count:
+            raise CommandPortError("broker_g6_schema_chunk_count_mismatch")
+        counts[record_ordinal] = chunk_count
+        record = grouped.setdefault(record_ordinal, {})
+        if chunk_ordinal in record:
+            raise CommandPortError("broker_g6_schema_duplicate_chunk")
+        record[chunk_ordinal] = chunk
+
+    if sorted(grouped) != list(range(1, len(grouped) + 1)):
+        raise CommandPortError("broker_g6_schema_record_sequence_incomplete")
+
+    records: list[dict] = []
+    for record_ordinal in range(1, len(grouped) + 1):
+        chunks = grouped[record_ordinal]
+        chunk_count = counts[record_ordinal]
+        if sorted(chunks) != list(range(1, chunk_count + 1)):
+            raise CommandPortError("broker_g6_schema_chunk_sequence_incomplete")
+        encoded = "".join(chunks[index] for index in range(1, chunk_count + 1))
+        try:
+            decoded = base64.b64decode(encoded, validate=True).decode("utf-8")
+            record = json.loads(decoded)
+        except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise CommandPortError("broker_g6_schema_record_invalid") from exc
+        if not isinstance(record, dict):
+            raise CommandPortError("broker_g6_schema_record_invalid")
+        records.append(record)
+    return records
 
 
 def read_en2_g6_decision_schema_v1(
@@ -578,13 +621,15 @@ def read_en2_g6_decision_schema_v1(
     if any(by_id[name].get("status") != "success" for name in by_id):
         raise CommandPortError("broker_g6_schema_step_failed")
 
-    columns_all = _parse_g6_values(
+    columns_all = _reconstruct_g6_capture(
         by_id["schema-columns"].get("result"),
         G6_SCHEMA_COLUMNS_TEMPLATE,
+        "columns",
     )
-    functions_all = _parse_g6_values(
+    functions_all = _reconstruct_g6_capture(
         by_id["schema-functions"].get("result"),
         G6_SCHEMA_FUNCTIONS_TEMPLATE,
+        "functions",
     )
     allowed_tables = {"dossiers", "dossier_decisions", "dossier_events", "parties"}
     columns = [
