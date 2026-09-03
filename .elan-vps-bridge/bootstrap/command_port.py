@@ -14,6 +14,7 @@ BROKER_SOCKET_PATH_DEFAULT = "/run/elan-vps-v1/control.sock"
 READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"
 G6_SCHEMA_COLUMNS_TEMPLATE = "en029_m6_schema_columns_chunks_v2"
 G6_SCHEMA_FUNCTIONS_TEMPLATE = "en029_m6_schema_functions_chunks_v2"
+G6_SCHEMA_CONSTRAINTS_TEMPLATE = "en029_m6_schema_constraints_indexes_chunks_v2"
 G4_COMMAND_TEMPLATE = "en029_m6_chatgpt_voice_register_v1"
 G4_EXECUTION_CLASS = "mutating_technical_change"
 G5_EXECUTION_CLASS = "reversible_technical_change"
@@ -587,6 +588,16 @@ def read_en2_g6_decision_schema_v1(
                     },
                     "timeout_seconds": 30,
                 },
+                {
+                    "step_id": "schema-constraints",
+                    "primitive": "postgres_query_template",
+                    "args": {
+                        "profile": "business",
+                        "template": G6_SCHEMA_CONSTRAINTS_TEMPLATE,
+                        "parameters": [],
+                    },
+                    "timeout_seconds": 30,
+                },
             ],
         },
     })
@@ -609,14 +620,14 @@ def read_en2_g6_decision_schema_v1(
     ):
         raise CommandPortError("broker_g6_schema_read_failed")
     steps = receipt.get("steps")
-    if not isinstance(steps, list) or len(steps) != 2:
+    if not isinstance(steps, list) or len(steps) != 3:
         raise CommandPortError("broker_g6_schema_receipt_invalid")
     by_id = {
         step.get("step_id"): step
         for step in steps
         if isinstance(step, dict) and isinstance(step.get("step_id"), str)
     }
-    if set(by_id) != {"schema-columns", "schema-functions"}:
+    if set(by_id) != {"schema-columns", "schema-functions", "schema-constraints"}:
         raise CommandPortError("broker_g6_schema_step_mismatch")
     if any(by_id[name].get("status") != "success" for name in by_id):
         raise CommandPortError("broker_g6_schema_step_failed")
@@ -631,6 +642,11 @@ def read_en2_g6_decision_schema_v1(
         G6_SCHEMA_FUNCTIONS_TEMPLATE,
         "functions",
     )
+    constraints_all = _reconstruct_g6_capture(
+        by_id["schema-constraints"].get("result"),
+        G6_SCHEMA_CONSTRAINTS_TEMPLATE,
+        "constraints_indexes",
+    )
     allowed_tables = {"dossiers", "dossier_decisions", "dossier_events", "parties"}
     columns = [
         item
@@ -643,6 +659,12 @@ def read_en2_g6_decision_schema_v1(
         if item.get("kind") == "function"
         and item.get("name") == "record_human_decision_v1"
     ]
+    constraints_indexes = [
+        item
+        for item in constraints_all
+        if item.get("kind") in {"constraint", "index"}
+        and item.get("table") in allowed_tables
+    ]
     if not any(item.get("table") == "dossier_decisions" for item in columns):
         raise CommandPortError("g6_decision_columns_missing")
     if not functions:
@@ -653,6 +675,7 @@ def read_en2_g6_decision_schema_v1(
         "run_id": receipt.get("run_id"),
         "columns": columns,
         "functions": functions,
+        "constraints_indexes": constraints_indexes,
         "business_rows_emitted": False,
         "external_action_allowed": False,
     }
