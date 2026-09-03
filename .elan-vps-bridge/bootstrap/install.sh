@@ -15,8 +15,11 @@ command -v curl >/dev/null
 install -d -o "$RUN_USER" -g "$RUN_USER" -m 0750 "$APP_DIR" "$STATE_DIR" "$STATE_DIR/claims" "$STATE_DIR/results" "$STATE_DIR/incoming"
 curl -fsSL "$BASE_RAW/bridge_worker.py" -o "$APP_DIR/bridge_worker.py"
 curl -fsSL "$BASE_RAW/issue_inbox.py" -o "$APP_DIR/issue_inbox.py"
-chown "$RUN_USER:$RUN_USER" "$APP_DIR/bridge_worker.py" "$APP_DIR/issue_inbox.py"
+curl -fsSL "$BASE_RAW/command_port.py" -o "$APP_DIR/command_port.py"
+python3 -m py_compile "$APP_DIR/bridge_worker.py" "$APP_DIR/issue_inbox.py" "$APP_DIR/command_port.py"
+chown "$RUN_USER:$RUN_USER" "$APP_DIR/bridge_worker.py" "$APP_DIR/issue_inbox.py" "$APP_DIR/command_port.py"
 chmod 0755 "$APP_DIR/bridge_worker.py" "$APP_DIR/issue_inbox.py"
+chmod 0644 "$APP_DIR/command_port.py"
 
 if [[ ! -s "$STATE_DIR/private.key" || ! -s "$STATE_DIR/public.crt" ]]; then
   sudo -u "$RUN_USER" openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 3650 \
@@ -38,7 +41,9 @@ User=$RUN_USER
 Group=$RUN_USER
 Environment=PYTHONUNBUFFERED=1
 Environment=ELAN_BRIDGE_STATE_ROOT=$STATE_DIR
+Environment=ELAN_BRIDGE_APP_ROOT=$APP_DIR
 Environment=ELAN_BRIDGE_CONTROL_REPO=romainbresil/public_html
+Environment=ELAN_BRIDGE_CONTROL_REF=elan-vps-bridge-control-v1
 Environment=ELAN_BRIDGE_ISSUE_AUTHOR=romainbresil
 Environment=ELAN_BRIDGE_POLL_SECONDS=60
 Environment=ELAN_BRIDGE_RESULT_HOST=127.0.0.1
@@ -51,7 +56,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=$STATE_DIR
+ReadWritePaths=$STATE_DIR $APP_DIR
 
 [Install]
 WantedBy=multi-user.target
