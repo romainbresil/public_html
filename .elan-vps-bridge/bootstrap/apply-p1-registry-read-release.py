@@ -115,16 +115,25 @@ def main() -> int:
             'P1_MIGRATION_REGISTRY_CONTEXT = {"target": "en2-p1-migration-registry"}\n',
             "p1_constants",
         )
-        inbox = replace_once(
-            inbox,
-            '    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:\n',
+        parse_anchor = (
+            '    if job["intent_code"] == G6_SCHEMA_READ_INTENT:\n'
+            '        if job["context"] != G6_SCHEMA_READ_CONTEXT:\n'
+            '            return None\n'
+            '        return job\n'
+            '    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:\n'
+        )
+        parse_replacement = (
+            '    if job["intent_code"] == G6_SCHEMA_READ_INTENT:\n'
+            '        if job["context"] != G6_SCHEMA_READ_CONTEXT:\n'
+            '            return None\n'
+            '        return job\n'
             '    if job["intent_code"] == P1_MIGRATION_REGISTRY_INTENT:\n'
             '        if job["context"] != P1_MIGRATION_REGISTRY_CONTEXT:\n'
             '            return None\n'
             '        return job\n'
-            '    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:\n',
-            "p1_parse",
+            '    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:\n'
         )
+        inbox = replace_once(inbox, parse_anchor, parse_replacement, "p1_parse")
         inbox = replace_once(
             inbox,
             '    if job["intent_code"] == SELF_UPDATE_INTENT:\n',
