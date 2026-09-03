@@ -6,6 +6,7 @@ on:
       - elan-vps-bridge-control-v1
     paths:
       - '.github/workflows/en-v2-g6-bridge-release.yml'
+      - '.elan-vps-bridge/bootstrap/apply-g6-schema-read-release.py'
 
 permissions:
   contents: write
