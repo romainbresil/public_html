@@ -679,3 +679,235 @@ def read_en2_g6_decision_schema_v1(
         "business_rows_emitted": False,
         "external_action_allowed": False,
     }
+# EN2-G6 bounded synthetic decision-absorption canary.
+G6_EXECUTION_CLASS = "reversible_technical_change"
+G6_EXPECTED_MIGRATION = "EN2_G6_001"
+G6_MIGRATION_PATH = ".elan-vps-bridge/packages/en2-g6/20260903_en2_g6_001_decision_absorption_canary.sql"
+G6_ROLLBACK_PATH = ".elan-vps-bridge/packages/en2-g6/20260903_en2_g6_001_decision_absorption_canary.rollback.sql"
+G6_MIGRATION_SHA256 = "87c2553e681d03fbf660ac2c342e6154dc9e8d12a9f8cc46400a1f70a1b37af3"
+G6_ROLLBACK_SHA256 = "07227ee51e9c05a5c9c26d10beaffb26139202cfc3014a4067be79b31b3021a0"
+G6_SYNTHETIC_DOSSIER_LINEAGE_TEMPLATE = "en029_m6_chatgpt_voice_register_v1"
+G6_DECISION_FACADE = "cockpit_business_command_v1"
+G6_HISTORY_EVENT = "DECISION_RESOLVED"
+
+
+def _verified_g6_package(fetch_fn):
+    try:
+        migration_raw = fetch_fn(G6_MIGRATION_PATH)
+        rollback_raw = fetch_fn(G6_ROLLBACK_PATH)
+    except CommandPortError:
+        raise
+    except Exception as exc:
+        raise CommandPortError("g6_package_fetch_failed") from exc
+    if not isinstance(migration_raw, bytes) or not isinstance(rollback_raw, bytes):
+        raise CommandPortError("g6_package_fetch_invalid")
+    if len(migration_raw) > _MAX_PACKAGE_BYTES or len(rollback_raw) > _MAX_PACKAGE_BYTES:
+        raise CommandPortError("g6_package_too_large")
+    if hashlib.sha256(migration_raw).hexdigest() != G6_MIGRATION_SHA256:
+        raise CommandPortError("g6_migration_sha256_mismatch")
+    if hashlib.sha256(rollback_raw).hexdigest() != G6_ROLLBACK_SHA256:
+        raise CommandPortError("g6_rollback_sha256_mismatch")
+    try:
+        return migration_raw.decode("utf-8"), rollback_raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise CommandPortError("g6_package_not_utf8") from exc
+
+
+def _g6_proof_from_migration_values(values):
+    if not isinstance(values, list) or not values:
+        raise CommandPortError("g6_proof_values_missing")
+    matches = []
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        try:
+            row = json.loads(value)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(row, dict) and row.get("migration_id") == G6_EXPECTED_MIGRATION:
+            matches.append(row)
+    if len(matches) != 1:
+        raise CommandPortError("g6_proof_migration_row_mismatch")
+    description = matches[0].get("description")
+    if not isinstance(description, str):
+        raise CommandPortError("g6_proof_description_missing")
+    try:
+        proof = json.loads(description)
+    except json.JSONDecodeError as exc:
+        raise CommandPortError("g6_proof_description_invalid") from exc
+    if not isinstance(proof, dict):
+        raise CommandPortError("g6_proof_description_invalid")
+    required = {
+        "gate": "EN2-G6",
+        "fixture": "synthetic_only",
+        "active_queue_removed": True,
+        "historical_retained": True,
+        "resolution_event_count": 1,
+        "idempotent_replay": True,
+        "external_action_allowed": False,
+    }
+    for key, expected in required.items():
+        if proof.get(key) != expected:
+            raise CommandPortError(f"g6_proof_contract_mismatch:{key}")
+    for key in ("dossier_id", "decision_id"):
+        if not isinstance(proof.get(key), str) or not proof[key]:
+            raise CommandPortError(f"g6_proof_identifier_missing:{key}")
+    return proof
+
+
+def execute_en2_g6_decision_absorption_canary_v1(
+    request_id: str,
+    request_fn=broker_request,
+    fetch_fn=_fetch_control_path,
+) -> dict:
+    request_key = _safe_key(request_id).lower()
+    migration_text, rollback_text = _verified_g6_package(fetch_fn)
+
+    staged_migration = request_fn({
+        "operation": "stage_text",
+        "content": migration_text,
+        "expected_sha256": G6_MIGRATION_SHA256,
+        "media_type": "text/plain",
+        "label": f"en2-g6-migration-{request_key}",
+    })
+    staged_rollback = request_fn({
+        "operation": "stage_text",
+        "content": rollback_text,
+        "expected_sha256": G6_ROLLBACK_SHA256,
+        "media_type": "text/plain",
+        "label": f"en2-g6-rollback-{request_key}",
+    })
+    migration_artifact_id = _artifact_id(staged_migration)
+    rollback_artifact_id = _artifact_id(staged_rollback)
+
+    prepared = request_fn({
+        "operation": "prepare_procedure",
+        "mission_id": "EN2-G6",
+        "work_id": "DECISION-ABSORPTION-PROD",
+        "technical_authority": "JA-023",
+        "idempotency_key": f"en2-g6-decision-absorption-{request_key}",
+        "procedure": {
+            "procedure_id": f"en2-g6-decision-absorption-{request_key}",
+            "title": "EN2-G6 bounded synthetic decision absorption canary",
+            "run_budget_seconds": 900,
+            "steps": [
+                {
+                    "step_id": "backup",
+                    "primitive": "postgres_backup",
+                    "args": {"profile": "business", "label": f"en2-g6-pre-{request_key}"},
+                    "timeout_seconds": 300,
+                    "retry": 0,
+                    "resource_lock": "postgres-business-en2-g6",
+                },
+                {
+                    "step_id": "preflight",
+                    "primitive": "postgres_migration_preflight",
+                    "args": {
+                        "profile": "business",
+                        "artifact_id": migration_artifact_id,
+                        "rollback_artifact_id": rollback_artifact_id,
+                    },
+                    "timeout_seconds": 120,
+                    "retry": 0,
+                    "resource_lock": "postgres-business-en2-g6",
+                },
+                {
+                    "step_id": "apply",
+                    "primitive": "postgres_migration_apply",
+                    "args": {
+                        "profile": "business",
+                        "artifact_id": migration_artifact_id,
+                        "rollback_artifact_id": rollback_artifact_id,
+                        "expected_migration": G6_EXPECTED_MIGRATION,
+                    },
+                    "timeout_seconds": 300,
+                    "retry": 0,
+                    "resource_lock": "postgres-business-en2-g6",
+                },
+                {
+                    "step_id": "proof-read",
+                    "primitive": "postgres_query_template",
+                    "args": {
+                        "profile": "business",
+                        "template": READ_STATUS_TEMPLATE,
+                        "parameters": [],
+                    },
+                    "timeout_seconds": 60,
+                    "retry": 0,
+                    "resource_lock": "postgres-business-en2-g6",
+                },
+            ],
+        },
+    })
+    plan = prepared.get("plan")
+    if not isinstance(plan, dict) or plan.get("risk") not in {"reversible", G6_EXECUTION_CLASS}:
+        raise CommandPortError("broker_g6_plan_not_reversible")
+
+    executed = request_fn({
+        "operation": "start_run",
+        "plan_id": plan.get("plan_id"),
+        "execution_token": plan.get("execution_token"),
+        "procedure_sha256": plan.get("procedure_sha256"),
+        "execution_class": G6_EXECUTION_CLASS,
+        "mode": "sync",
+    })
+    receipt = executed.get("receipt")
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("status") != "succeeded"
+        or receipt.get("execution_class") != G6_EXECUTION_CLASS
+    ):
+        raise CommandPortError("broker_g6_run_failed")
+
+    steps = receipt.get("steps")
+    if not isinstance(steps, list) or len(steps) != 4:
+        raise CommandPortError("broker_g6_receipt_invalid")
+    by_id = {
+        step.get("step_id"): step
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("step_id"), str)
+    }
+    if set(by_id) != {"backup", "preflight", "apply", "proof-read"}:
+        raise CommandPortError("broker_g6_receipt_step_mismatch")
+    if any(by_id[name].get("status") != "success" for name in by_id):
+        raise CommandPortError("broker_g6_step_failed")
+
+    backup = by_id["backup"].get("result")
+    preflight = by_id["preflight"].get("result")
+    apply_result = by_id["apply"].get("result")
+    proof_result = by_id["proof-read"].get("result")
+    if not isinstance(backup, dict):
+        raise CommandPortError("broker_g6_backup_readback_invalid")
+    if (
+        not isinstance(preflight, dict)
+        or preflight.get("free_sql") is not False
+        or preflight.get("rollback_present") is not True
+    ):
+        raise CommandPortError("broker_g6_preflight_readback_invalid")
+    if (
+        not isinstance(apply_result, dict)
+        or apply_result.get("artifact_sha256") != G6_MIGRATION_SHA256
+    ):
+        raise CommandPortError("broker_g6_apply_readback_invalid")
+    if (
+        not isinstance(proof_result, dict)
+        or proof_result.get("template") != READ_STATUS_TEMPLATE
+    ):
+        raise CommandPortError("broker_g6_proof_readback_invalid")
+    proof = _g6_proof_from_migration_values(proof_result.get("values"))
+
+    return {
+        "status": "succeeded",
+        "execution_class": G6_EXECUTION_CLASS,
+        "expected_migration": G6_EXPECTED_MIGRATION,
+        "migration_sha256": G6_MIGRATION_SHA256,
+        "rollback_sha256": G6_ROLLBACK_SHA256,
+        "run_id": receipt.get("run_id"),
+        "backup": backup,
+        "preflight": preflight,
+        "apply": apply_result,
+        "proof": proof,
+        "transaction_assertions_embedded": True,
+        "free_sql": False,
+        "external_action_allowed": False,
+    }

@@ -26,6 +26,12 @@ G5_KNOWLEDGE_INTENT = "EN2_G5_KNOWLEDGE_CAPTURE_APPLY"
 G5_KNOWLEDGE_CONTEXT = {"target": "en2-g5-knowledge-capture"}
 G6_SCHEMA_READ_INTENT = "EN2_G6_DECISION_SCHEMA_READ"
 G6_SCHEMA_READ_CONTEXT = {"target": "en2-g6-decision-schema"}
+G6_DECISION_ABSORPTION_INTENT = "EN2_G6_DECISION_ABSORPTION_CANARY"
+G6_DECISION_ABSORPTION_CONTEXT = {
+    "target": "en2-g6-decision-absorption",
+    "synthetic": True,
+    "idempotency_key": "en2-g6-decision-resolved-20260903-v1",
+}
 SELF_UPDATE_INTENT = "BRIDGE_SELF_UPDATE"
 SELF_UPDATE_MANIFEST_PATH = ".elan-vps-bridge/bootstrap/runtime-manifest.json"
 SELF_UPDATE_RUNTIME_FILES = ("issue_inbox.py", "bridge_worker.py", "command_port.py")
@@ -124,6 +130,10 @@ def parse_issue_intent(issue: dict) -> dict | None:
         return job
     if job["intent_code"] == G6_SCHEMA_READ_INTENT:
         if job["context"] != G6_SCHEMA_READ_CONTEXT:
+            return None
+        return job
+    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:
+        if job["context"] != G6_DECISION_ABSORPTION_CONTEXT:
             return None
         return job
     if job["intent_code"] == SELF_UPDATE_INTENT:
@@ -324,6 +334,12 @@ def _execute_job(job: dict) -> dict:
     if job["intent_code"] == G6_SCHEMA_READ_INTENT:
         try:
             payload = command_port.read_en2_g6_decision_schema_v1(job["id"])
+            return _completed(job, started, {"status": "PASS", **payload})
+        except command_port.CommandPortError as exc:
+            return _failed(job, started, str(exc))
+    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:
+        try:
+            payload = command_port.execute_en2_g6_decision_absorption_canary_v1(job["id"])
             return _completed(job, started, {"status": "PASS", **payload})
         except command_port.CommandPortError as exc:
             return _failed(job, started, str(exc))
