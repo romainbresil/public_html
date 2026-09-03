@@ -6,7 +6,7 @@ on:
       - elan-vps-bridge-control-v1
     paths:
       - '.github/workflows/en-v2-g6-bridge-release-v3.yml'
-      - '.elan-vps-bridge/bootstrap/apply-polling-quota-fix-release.py'
+      - '.elan-vps-bridge/bootstrap/apply-p1-registry-read-release.py'
 
 permissions:
   contents: write
@@ -22,15 +22,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply guarded bridge polling quota fix
+      - name: Apply guarded EN2-P1 registry read release
         shell: bash
         run: |
           set -euo pipefail
-          python .elan-vps-bridge/bootstrap/apply-polling-quota-fix-release.py
+          python .elan-vps-bridge/bootstrap/apply-p1-registry-read-release.py
           python -m py_compile .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/bridge_worker.py .elan-vps-bridge/bootstrap/command_port.py
           python .elan-vps-bridge/bootstrap/test_issue_inbox_polling.py
-          grep -q 'labels=elan-cms-chatgpt' .elan-vps-bridge/bootstrap/issue_inbox.py
-          grep -q 'POLL_SECONDS = max(120' .elan-vps-bridge/bootstrap/issue_inbox.py
+          python .elan-vps-bridge/bootstrap/test_p1_migration_registry_read.py
       - name: Commit release
         shell: bash
         run: |
@@ -38,10 +37,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add \
+            .elan-vps-bridge/bootstrap/command_port.py \
             .elan-vps-bridge/bootstrap/issue_inbox.py \
-            .elan-vps-bridge/bootstrap/install.sh \
-            .elan-vps-bridge/bootstrap/runtime-manifest.json \
-            .elan-vps-bridge/bootstrap/polling-fix-self-update-request.json
+            .elan-vps-bridge/bootstrap/runtime-manifest.json
           git diff --cached --check
-          git commit -m 'fix: prevent bridge GitHub polling quota starvation'
+          git commit -m 'bridge: release bounded EN2-P1 registry read'
           git push origin HEAD:elan-vps-bridge-control-v1
