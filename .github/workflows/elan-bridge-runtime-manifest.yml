@@ -32,7 +32,7 @@ jobs:
               }
           manifest = {
               'schema_version': '1.0',
-              'release_id': 'en2-g5-20260903-710ef108',
+              'release_id': 'en2-g6-schema-read-cf92ed80',
               'files': files,
           }
           (root / 'runtime-manifest.json').write_text(
