@@ -45,7 +45,7 @@ Environment=ELAN_BRIDGE_APP_ROOT=$APP_DIR
 Environment=ELAN_BRIDGE_CONTROL_REPO=romainbresil/public_html
 Environment=ELAN_BRIDGE_CONTROL_REF=elan-vps-bridge-control-v1
 Environment=ELAN_BRIDGE_ISSUE_AUTHOR=romainbresil
-Environment=ELAN_BRIDGE_POLL_SECONDS=60
+Environment=ELAN_BRIDGE_POLL_SECONDS=120
 Environment=ELAN_BRIDGE_RESULT_HOST=127.0.0.1
 Environment=ELAN_BRIDGE_RESULT_PORT=8789
 Environment=ELAN_BRIDGE_RETURN_ENDPOINT=https://romainbecquart.com/__elan-vps-bridge-return.html

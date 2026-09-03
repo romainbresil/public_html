@@ -18,7 +18,7 @@ CONTROL_REPO = os.environ.get("ELAN_BRIDGE_CONTROL_REPO", "romainbresil/public_h
 CONTROL_REF = os.environ.get("ELAN_BRIDGE_CONTROL_REF", "elan-vps-bridge-control-v1")
 ISSUE_AUTHOR = os.environ.get("ELAN_BRIDGE_ISSUE_AUTHOR", "romainbresil")
 ISSUE_TITLE_PREFIX = "EN-INTENT — "
-POLL_SECONDS = max(60, int(os.environ.get("ELAN_BRIDGE_POLL_SECONDS", "60")))
+POLL_SECONDS = max(120, int(os.environ.get("ELAN_BRIDGE_POLL_SECONDS", "120")))
 SPRINT_PRO_READ_INTENT = "EN_CORE_STATUS_READ"
 G4_COMMERCIAL_INTENT = "EN2_G4_COMMERCIAL_CANARY_WRITE"
 G4_COMMERCIAL_CONTEXT = {"target": "en2-g4-commercial-canary"}
@@ -44,7 +44,7 @@ _RELEASE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 def _issues_url() -> str:
     return (
         f"https://api.github.com/repos/{CONTROL_REPO}/issues"
-        "?state=open&sort=created&direction=asc&per_page=30"
+        "?state=open&sort=created&direction=asc&per_page=30&labels=elan-cms-chatgpt"
     )
 
 
