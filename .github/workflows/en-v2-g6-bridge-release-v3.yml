@@ -6,7 +6,7 @@ on:
       - elan-vps-bridge-control-v1
     paths:
       - '.github/workflows/en-v2-g6-bridge-release-v3.yml'
-      - '.elan-vps-bridge/bootstrap/apply-g6-schema-read-v3-release.py'
+      - '.elan-vps-bridge/bootstrap/apply-polling-quota-fix-release.py'
 
 permissions:
   contents: write
@@ -22,20 +22,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply guarded G6 V3 release
+      - name: Apply guarded bridge polling quota fix
         shell: bash
         run: |
           set -euo pipefail
-          python .elan-vps-bridge/bootstrap/apply-g6-schema-read-v3-release.py
+          python .elan-vps-bridge/bootstrap/apply-polling-quota-fix-release.py
           python -m py_compile .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/bridge_worker.py .elan-vps-bridge/bootstrap/command_port.py
-          grep -q 'G6_SCHEMA_CONSTRAINTS_TEMPLATE = "en029_m6_schema_constraints_indexes_chunks_v2"' .elan-vps-bridge/bootstrap/command_port.py
-          grep -q '"constraints_indexes": constraints_indexes' .elan-vps-bridge/bootstrap/command_port.py
+          python .elan-vps-bridge/bootstrap/test_issue_inbox_polling.py
+          grep -q 'labels=elan-cms-chatgpt' .elan-vps-bridge/bootstrap/issue_inbox.py
+          grep -q 'POLL_SECONDS = max(120' .elan-vps-bridge/bootstrap/issue_inbox.py
       - name: Commit release
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .elan-vps-bridge/bootstrap/command_port.py .elan-vps-bridge/bootstrap/runtime-manifest.json
-          git commit -m 'feat: publish EN2 G6 schema-read V3 bridge runtime'
+          git add \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/install.sh \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json \
+            .elan-vps-bridge/bootstrap/polling-fix-self-update-request.json
+          git diff --cached --check
+          git commit -m 'fix: prevent bridge GitHub polling quota starvation'
           git push origin HEAD:elan-vps-bridge-control-v1
