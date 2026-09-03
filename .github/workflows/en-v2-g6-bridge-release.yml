@@ -6,7 +6,7 @@ on:
       - elan-vps-bridge-control-v1
     paths:
       - '.github/workflows/en-v2-g6-bridge-release.yml'
-      - '.elan-vps-bridge/bootstrap/apply-g6-schema-read-release.py'
+      - '.elan-vps-bridge/bootstrap/apply-g6-schema-read-v2-release.py'
 
 permissions:
   contents: write
@@ -22,11 +22,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply content-addressed G6 release
+      - name: Apply content-addressed G6 chunk-safe release
         shell: bash
         run: |
           set -euo pipefail
-          python .elan-vps-bridge/bootstrap/apply-g6-schema-read-release.py
+          python .elan-vps-bridge/bootstrap/apply-g6-schema-read-v2-release.py
           python -m py_compile .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/bridge_worker.py .elan-vps-bridge/bootstrap/command_port.py
       - name: Commit release
         shell: bash
@@ -34,6 +34,6 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/command_port.py .elan-vps-bridge/bootstrap/runtime-manifest.json
-          git commit -m 'feat: publish EN2 G6 schema-read bridge runtime'
+          git add .elan-vps-bridge/bootstrap/command_port.py .elan-vps-bridge/bootstrap/runtime-manifest.json
+          git commit -m 'fix: publish EN2 G6 chunk-safe bridge runtime'
           git push origin HEAD:elan-vps-bridge-control-v1
