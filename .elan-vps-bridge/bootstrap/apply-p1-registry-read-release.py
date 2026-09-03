@@ -134,18 +134,31 @@ def main() -> int:
             '    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:\n'
         )
         inbox = replace_once(inbox, parse_anchor, parse_replacement, "p1_parse")
-        inbox = replace_once(
-            inbox,
-            '    if job["intent_code"] == SELF_UPDATE_INTENT:\n',
+        execute_anchor = (
+            '    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:\n'
+            '        try:\n'
+            '            payload = command_port.execute_en2_g6_decision_absorption_canary_v1(job["id"])\n'
+            '            return _completed(job, started, {"status": "PASS", **payload})\n'
+            '        except command_port.CommandPortError as exc:\n'
+            '            return _failed(job, started, str(exc))\n'
+            '    if job["intent_code"] == SELF_UPDATE_INTENT:\n'
+        )
+        execute_replacement = (
+            '    if job["intent_code"] == G6_DECISION_ABSORPTION_INTENT:\n'
+            '        try:\n'
+            '            payload = command_port.execute_en2_g6_decision_absorption_canary_v1(job["id"])\n'
+            '            return _completed(job, started, {"status": "PASS", **payload})\n'
+            '        except command_port.CommandPortError as exc:\n'
+            '            return _failed(job, started, str(exc))\n'
             '    if job["intent_code"] == P1_MIGRATION_REGISTRY_INTENT:\n'
             '        try:\n'
             '            payload = command_port.read_en2_p1_migration_registry_v1(job["id"])\n'
             '            return _completed(job, started, {"status": "PASS", **payload})\n'
             '        except command_port.CommandPortError as exc:\n'
             '            return _failed(job, started, str(exc))\n'
-            '    if job["intent_code"] == SELF_UPDATE_INTENT:\n',
-            "p1_execute",
+            '    if job["intent_code"] == SELF_UPDATE_INTENT:\n'
         )
+        inbox = replace_once(inbox, execute_anchor, execute_replacement, "p1_execute")
         ISSUE_INBOX.write_text(inbox, encoding="utf-8")
 
     runtime_files = {
