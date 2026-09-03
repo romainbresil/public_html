@@ -1,0 +1,67 @@
+name: EN V2 G6 Decision Absorption Release
+
+on:
+  push:
+    branches:
+      - elan-vps-bridge-control-v1
+    paths:
+      - '.github/workflows/en-v2-g6-decision-absorption-release.yml'
+      - '.elan-vps-bridge/bootstrap/apply-g6-decision-absorption-release.py'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: elan-vps-bridge-control-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply guarded G6 decision-absorption release
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .elan-vps-bridge/bootstrap/apply-g6-decision-absorption-release.py
+          python -m py_compile .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/bridge_worker.py .elan-vps-bridge/bootstrap/command_port.py
+          grep -q 'G6_DECISION_ABSORPTION_INTENT = "EN2_G6_DECISION_ABSORPTION_CANARY"' .elan-vps-bridge/bootstrap/issue_inbox.py
+          grep -q 'def execute_en2_g6_decision_absorption_canary_v1' .elan-vps-bridge/bootstrap/command_port.py
+          grep -q 'G6_EXPECTED_MIGRATION = "EN2_G6_001"' .elan-vps-bridge/bootstrap/command_port.py
+          python - <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path('.elan-vps-bridge/bootstrap').resolve()
+          sys.path.insert(0, str(root))
+          import issue_inbox
+          issue = {
+              'number': 699,
+              'title': 'EN-INTENT — EN2 G6 decision absorption canary',
+              'body': json.dumps({
+                  'intent_code': 'EN2_G6_DECISION_ABSORPTION_CANARY',
+                  'context': {
+                      'target': 'en2-g6-decision-absorption',
+                      'synthetic': True,
+                      'idempotency_key': 'en2-g6-decision-resolved-20260903-v1',
+                  },
+              }),
+              'user': {'login': issue_inbox.ISSUE_AUTHOR},
+          }
+          job = issue_inbox.parse_issue_intent(issue)
+          assert job and job['intent_code'] == 'EN2_G6_DECISION_ABSORPTION_CANARY'
+          mutated = json.loads(issue['body'])
+          mutated['context']['sql'] = 'forbidden'
+          issue['body'] = json.dumps(mutated)
+          assert issue_inbox.parse_issue_intent(issue) is None
+          PY
+      - name: Commit release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .elan-vps-bridge/bootstrap/command_port.py .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/runtime-manifest.json
+          git commit -m 'feat: publish EN2 G6 decision-absorption bridge runtime'
+          git push origin HEAD:elan-vps-bridge-control-v1
