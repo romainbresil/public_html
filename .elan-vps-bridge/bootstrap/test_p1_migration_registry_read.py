@@ -33,52 +33,83 @@ class P1MigrationRegistryReadContractTest(unittest.TestCase):
         })
         self.assertIsNone(issue_inbox.parse_issue_intent(bad))
 
-    def test_read_uses_existing_fixed_registry_template_only(self):
+    def _request_fn(self, *, wrong_id=False):
         calls = []
-        rows = [
-            {"migration_id": "MIG-044", "state": "PASS", "baseline": True},
-            {"migration_id": "MIG-045", "state": "NOT_STARTED"},
-            {"migration_id": "MIG-046", "state": "NOT_STARTED"},
-            {"migration_id": "MIG-050", "state": "NOT_STARTED"},
-        ]
+        rows = {
+            "MIG-044": {"migration_id": "MIG-044", "state": "PASS", "baseline": True},
+            "MIG-045": {"migration_id": "MIG-045", "state": "NOT_STARTED"},
+            "MIG-046": {"migration_id": "MIG-046", "state": "NOT_STARTED"},
+            "MIG-050": {"migration_id": "MIG-050", "state": "NOT_STARTED"},
+        }
 
         def request_fn(payload):
             calls.append(payload)
             if payload["operation"] == "prepare_procedure":
-                step = payload["procedure"]["steps"][0]
-                self.assertEqual(step["primitive"], "postgres_query_template")
-                self.assertEqual(step["args"], {
+                steps = payload["procedure"]["steps"]
+                self.assertEqual(len(steps), 5)
+                self.assertEqual(steps[0]["args"], {
                     "profile": "business",
                     "template": "en033_m1_mig037_registry_read_all_v1",
                     "parameters": [],
                 })
+                for index, migration_id in enumerate(("MIG-044", "MIG-045", "MIG-046", "MIG-050"), start=1):
+                    self.assertEqual(steps[index]["primitive"], "postgres_query_template")
+                    self.assertEqual(steps[index]["args"], {
+                        "profile": "business",
+                        "template": "en033_m1_mig037_registry_read_v1",
+                        "parameters": [migration_id],
+                    })
                 return {"plan": {
                     "risk": "read_only",
                     "plan_id": "p1-read-plan",
                     "execution_token": "token",
                     "procedure_sha256": "sha",
                 }}
+            receipt_steps = [{
+                "step_id": "migration-registry-read-all",
+                "status": "success",
+                "result": {
+                    "template": "en033_m1_mig037_registry_read_all_v1",
+                    "values": ['[{"migration_id":"MIG-001"}' + ("x" * 5000) + "...[truncated]"],
+                },
+            }]
+            for migration_id in ("MIG-044", "MIG-045", "MIG-046", "MIG-050"):
+                row = dict(rows[migration_id])
+                if wrong_id and migration_id == "MIG-046":
+                    row["migration_id"] = "MIG-047"
+                receipt_steps.append({
+                    "step_id": f"migration-registry-read-{migration_id.lower()}",
+                    "status": "success",
+                    "result": {
+                        "template": "en033_m1_mig037_registry_read_v1",
+                        "values": [json.dumps(row)],
+                    },
+                })
             return {"receipt": {
                 "status": "succeeded",
                 "execution_class": "read_only",
                 "run_id": "run-p1-read",
                 "replayed": False,
-                "steps": [{
-                    "step_id": "migration-registry-read",
-                    "status": "success",
-                    "result": {
-                        "template": "en033_m1_mig037_registry_read_all_v1",
-                        "values": [json.dumps(rows)],
-                    },
-                }],
+                "steps": receipt_steps,
             }}
 
+        return calls, rows, request_fn
+
+    def test_read_preserves_canonical_read_all_then_recovers_bounded_entries(self):
+        calls, rows, request_fn = self._request_fn()
         result = command_port.read_en2_p1_migration_registry_v1("gh-issue-999", request_fn=request_fn)
         self.assertEqual(result["execution_class"], "read_only")
-        self.assertEqual(result["entries"], rows)
+        self.assertEqual(result["entries"], [rows[mid] for mid in ("MIG-044", "MIG-045", "MIG-046", "MIG-050")])
         self.assertEqual(result["template"], "en033_m1_mig037_registry_read_all_v1")
+        self.assertEqual(result["entry_template"], "en033_m1_mig037_registry_read_v1")
+        self.assertEqual(result["read_all_transport"], "SANITIZER_TRUNCATED_BOUNDED_FALLBACK")
         self.assertFalse(result["external_action_allowed"])
         self.assertEqual([call["operation"] for call in calls], ["prepare_procedure", "start_run"])
+
+    def test_bounded_entry_identity_mismatch_fails_closed(self):
+        _, _, request_fn = self._request_fn(wrong_id=True)
+        with self.assertRaisesRegex(command_port.CommandPortError, "broker_p1_registry_entry_identity_mismatch"):
+            command_port.read_en2_p1_migration_registry_v1("gh-issue-999", request_fn=request_fn)
 
 
 if __name__ == "__main__":
