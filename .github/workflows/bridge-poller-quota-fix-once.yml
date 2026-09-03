@@ -1,0 +1,99 @@
+name: Bridge Poller Quota Fix Once
+
+on:
+  push:
+    branches:
+      - elan-vps-bridge-control-v1
+    paths:
+      - ".github/workflows/bridge-poller-quota-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: elan-vps-bridge-control-v1
+      - name: Apply exact polling fix and publish self-update manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          inbox = root / '.elan-vps-bridge/bootstrap/issue_inbox.py'
+          install = root / '.elan-vps-bridge/bootstrap/install.sh'
+          manifest = root / '.elan-vps-bridge/bootstrap/runtime-manifest.json'
+          request = root / '.elan-vps-bridge/bootstrap/polling-fix-self-update-request.json'
+
+          text = inbox.read_text(encoding='utf-8')
+          replacements = {
+              'POLL_SECONDS = max(60, int(os.environ.get("ELAN_BRIDGE_POLL_SECONDS", "60")))':
+                  'POLL_SECONDS = max(120, int(os.environ.get("ELAN_BRIDGE_POLL_SECONDS", "120")))',
+              '"?state=open&sort=created&direction=asc&per_page=30"':
+                  '"?state=open&sort=created&direction=asc&per_page=30&labels=elan-cms-chatgpt"',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'expected_exactly_one_match: {old}')
+              text = text.replace(old, new, 1)
+          inbox.write_text(text, encoding='utf-8')
+
+          install_text = install.read_text(encoding='utf-8')
+          old_env = 'Environment=ELAN_BRIDGE_POLL_SECONDS=60'
+          new_env = 'Environment=ELAN_BRIDGE_POLL_SECONDS=120'
+          if install_text.count(old_env) != 1:
+              raise SystemExit('expected_exactly_one_install_poll_env')
+          install.write_text(install_text.replace(old_env, new_env, 1), encoding='utf-8')
+
+          runtime_files = {
+              'bridge_worker.py': '.elan-vps-bridge/bootstrap/bridge_worker.py',
+              'command_port.py': '.elan-vps-bridge/bootstrap/command_port.py',
+              'issue_inbox.py': '.elan-vps-bridge/bootstrap/issue_inbox.py',
+          }
+          files = {}
+          for name, path in runtime_files.items():
+              digest = hashlib.sha256((root / path).read_bytes()).hexdigest()
+              files[name] = {'path': path, 'sha256': digest}
+          manifest_payload = {
+              'files': files,
+              'release_id': 'bridge-polling-quota-fix-20260903-v1',
+              'schema_version': '1.0',
+          }
+          manifest_raw = (json.dumps(manifest_payload, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8')
+          manifest.write_bytes(manifest_raw)
+          manifest_sha = hashlib.sha256(manifest_raw).hexdigest()
+          request_payload = {
+              'intent_code': 'BRIDGE_SELF_UPDATE',
+              'context': {'target': 'elan-bridge', 'manifest_sha256': manifest_sha},
+          }
+          request.write_text(json.dumps(request_payload, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf-8')
+          print(f'MANIFEST_SHA256={manifest_sha}')
+          print(f'ISSUE_INBOX_SHA256={files["issue_inbox.py"]["sha256"]}')
+          PY
+          python3 -m py_compile \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/bridge_worker.py \
+            .elan-vps-bridge/bootstrap/command_port.py
+          python3 .elan-vps-bridge/bootstrap/test_issue_inbox_polling.py
+      - name: Commit exact release payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/install.sh \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json \
+            .elan-vps-bridge/bootstrap/polling-fix-self-update-request.json
+          git diff --cached --check
+          git commit -m "fix: prevent bridge GitHub polling quota starvation"
+          git push origin HEAD:elan-vps-bridge-control-v1
