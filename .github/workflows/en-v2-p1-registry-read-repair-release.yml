@@ -1,0 +1,44 @@
+name: EN V2 P1 Registry Read Repair Release
+
+on:
+  push:
+    branches:
+      - elan-vps-bridge-control-v1
+    paths:
+      - '.elan-vps-bridge/bootstrap/apply-p1-registry-read-release.py'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: elan-vps-bridge-control-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply guarded P1 registry read repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .elan-vps-bridge/bootstrap/apply-p1-registry-read-release.py
+          python -m py_compile \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/bridge_worker.py \
+            .elan-vps-bridge/bootstrap/command_port.py
+          python .elan-vps-bridge/bootstrap/test_p1_migration_registry_read.py
+      - name: Commit repaired runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            .elan-vps-bridge/bootstrap/command_port.py \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json
+          git commit -m 'fix: bound EN2 P1 registry read around broker sanitizer'
+          git push origin HEAD:elan-vps-bridge-control-v1
