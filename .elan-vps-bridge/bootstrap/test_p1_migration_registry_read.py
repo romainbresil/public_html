@@ -112,5 +112,6 @@ class P1MigrationRegistryReadContractTest(unittest.TestCase):
             command_port.read_en2_p1_migration_registry_v1("gh-issue-999", request_fn=request_fn)
 
 
+# Verification-only trigger after the bot-published runtime v2 commit.
 if __name__ == "__main__":
     unittest.main(verbosity=2)
