@@ -20,17 +20,20 @@ RELEASE_ID = "en2-g6-schema-read-cf92ed80"
 
 def patch_command_port() -> None:
     source = COMMAND_PORT.read_text(encoding="utf-8")
-    if "G6_SCHEMA_COLUMNS_TEMPLATE" not in source:
-        marker = 'READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"\n'
-        replacement = (
-            'READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"\n'
-            'G6_SCHEMA_COLUMNS_TEMPLATE = "en029_m6_schema_columns_v1"\n'
-            'G6_SCHEMA_FUNCTIONS_TEMPLATE = "en029_m6_schema_functions_v1"\n'
-        )
-        if marker not in source:
-            raise RuntimeError("command_port_constant_marker_missing")
-        source = source.replace(marker, replacement, 1)
-        source += '''
+    if "G6_SCHEMA_COLUMNS_TEMPLATE" in source:
+        return
+
+    marker = 'READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"\n'
+    replacement = (
+        'READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"\n'
+        'G6_SCHEMA_COLUMNS_TEMPLATE = "en029_m6_schema_columns_v1"\n'
+        'G6_SCHEMA_FUNCTIONS_TEMPLATE = "en029_m6_schema_functions_v1"\n'
+    )
+    if marker not in source:
+        raise RuntimeError("command_port_constant_marker_missing")
+    source = source.replace(marker, replacement, 1)
+
+    source += '''
 
 
 def _parse_g6_values(result: dict, expected_template: str) -> list[dict]:
@@ -72,13 +75,21 @@ def read_en2_g6_decision_schema_v1(
                 {
                     "step_id": "schema-columns",
                     "primitive": "postgres_query_template",
-                    "args": {"profile": "business", "template": G6_SCHEMA_COLUMNS_TEMPLATE, "parameters": []},
+                    "args": {
+                        "profile": "business",
+                        "template": G6_SCHEMA_COLUMNS_TEMPLATE,
+                        "parameters": [],
+                    },
                     "timeout_seconds": 30,
                 },
                 {
                     "step_id": "schema-functions",
                     "primitive": "postgres_query_template",
-                    "args": {"profile": "business", "template": G6_SCHEMA_FUNCTIONS_TEMPLATE, "parameters": []},
+                    "args": {
+                        "profile": "business",
+                        "template": G6_SCHEMA_FUNCTIONS_TEMPLATE,
+                        "parameters": [],
+                    },
                     "timeout_seconds": 30,
                 },
             ],
@@ -96,21 +107,45 @@ def read_en2_g6_decision_schema_v1(
         "mode": "sync",
     })
     receipt = executed.get("receipt")
-    if not isinstance(receipt, dict) or receipt.get("status") != "succeeded" or receipt.get("execution_class") != "read_only":
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("status") != "succeeded"
+        or receipt.get("execution_class") != "read_only"
+    ):
         raise CommandPortError("broker_g6_schema_read_failed")
     steps = receipt.get("steps")
     if not isinstance(steps, list) or len(steps) != 2:
         raise CommandPortError("broker_g6_schema_receipt_invalid")
-    by_id = {step.get("step_id"): step for step in steps if isinstance(step, dict) and isinstance(step.get("step_id"), str)}
+    by_id = {
+        step.get("step_id"): step
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("step_id"), str)
+    }
     if set(by_id) != {"schema-columns", "schema-functions"}:
         raise CommandPortError("broker_g6_schema_step_mismatch")
     if any(by_id[name].get("status") != "success" for name in by_id):
         raise CommandPortError("broker_g6_schema_step_failed")
-    columns_all = _parse_g6_values(by_id["schema-columns"].get("result"), G6_SCHEMA_COLUMNS_TEMPLATE)
-    functions_all = _parse_g6_values(by_id["schema-functions"].get("result"), G6_SCHEMA_FUNCTIONS_TEMPLATE)
+
+    columns_all = _parse_g6_values(
+        by_id["schema-columns"].get("result"),
+        G6_SCHEMA_COLUMNS_TEMPLATE,
+    )
+    functions_all = _parse_g6_values(
+        by_id["schema-functions"].get("result"),
+        G6_SCHEMA_FUNCTIONS_TEMPLATE,
+    )
     allowed_tables = {"dossiers", "dossier_decisions", "dossier_events", "parties"}
-    columns = [item for item in columns_all if item.get("kind") == "column" and item.get("table") in allowed_tables]
-    functions = [item for item in functions_all if item.get("kind") == "function" and item.get("name") == "record_human_decision_v1"]
+    columns = [
+        item
+        for item in columns_all
+        if item.get("kind") == "column" and item.get("table") in allowed_tables
+    ]
+    functions = [
+        item
+        for item in functions_all
+        if item.get("kind") == "function"
+        and item.get("name") == "record_human_decision_v1"
+    ]
     if not any(item.get("table") == "dossier_decisions" for item in columns):
         raise CommandPortError("g6_decision_columns_missing")
     if not functions:
@@ -125,28 +160,56 @@ def read_en2_g6_decision_schema_v1(
         "external_action_allowed": False,
     }
 '''
-        COMMAND_PORT.write_text(source, encoding="utf-8")
+    COMMAND_PORT.write_text(source, encoding="utf-8")
 
 
 def patch_issue_inbox() -> None:
     source = ISSUE_INBOX.read_text(encoding="utf-8")
     if "G6_SCHEMA_READ_INTENT" in source:
         return
+
     marker = 'G5_KNOWLEDGE_CONTEXT = {"target": "en2-g5-knowledge-capture"}\n'
-    replacement = marker + 'G6_SCHEMA_READ_INTENT = "EN2_G6_DECISION_SCHEMA_READ"\nG6_SCHEMA_READ_CONTEXT = {"target": "en2-g6-decision-schema"}\n'
+    replacement = (
+        'G5_KNOWLEDGE_CONTEXT = {"target": "en2-g5-knowledge-capture"}\n'
+        'G6_SCHEMA_READ_INTENT = "EN2_G6_DECISION_SCHEMA_READ"\n'
+        'G6_SCHEMA_READ_CONTEXT = {"target": "en2-g6-decision-schema"}\n'
+    )
     if marker not in source:
         raise RuntimeError("issue_inbox_constant_marker_missing")
     source = source.replace(marker, replacement, 1)
-    marker = '''    if job["intent_code"] == G5_KNOWLEDGE_INTENT:\n        if job["context"] != G5_KNOWLEDGE_CONTEXT:\n            return None\n        return job\n'''
-    replacement = marker + '''    if job["intent_code"] == G6_SCHEMA_READ_INTENT:\n        if job["context"] != G6_SCHEMA_READ_CONTEXT:\n            return None\n        return job\n'''
+
+    marker = '''    if job["intent_code"] == G5_KNOWLEDGE_INTENT:
+        if job["context"] != G5_KNOWLEDGE_CONTEXT:
+            return None
+        return job
+'''
+    replacement = marker + '''    if job["intent_code"] == G6_SCHEMA_READ_INTENT:
+        if job["context"] != G6_SCHEMA_READ_CONTEXT:
+            return None
+        return job
+'''
     if marker not in source:
         raise RuntimeError("issue_inbox_parse_marker_missing")
     source = source.replace(marker, replacement, 1)
-    marker = '''    if job["intent_code"] == G5_KNOWLEDGE_INTENT:\n        try:\n            payload = command_port.run_en2_g5_knowledge_capture_v1(job["id"])\n            return _completed(job, started, {"status": "PASS", **payload})\n        except command_port.CommandPortError as exc:\n            return _failed(job, started, str(exc))\n'''
-    replacement = marker + '''    if job["intent_code"] == G6_SCHEMA_READ_INTENT:\n        try:\n            payload = command_port.read_en2_g6_decision_schema_v1(job["id"])\n            return _completed(job, started, {"status": "PASS", **payload})\n        except command_port.CommandPortError as exc:\n            return _failed(job, started, str(exc))\n'''
+
+    marker = '''    if job["intent_code"] == G5_KNOWLEDGE_INTENT:
+        try:
+            payload = command_port.run_en2_g5_knowledge_capture_v1(job["id"])
+            return _completed(job, started, {"status": "PASS", **payload})
+        except command_port.CommandPortError as exc:
+            return _failed(job, started, str(exc))
+'''
+    replacement = marker + '''    if job["intent_code"] == G6_SCHEMA_READ_INTENT:
+        try:
+            payload = command_port.read_en2_g6_decision_schema_v1(job["id"])
+            return _completed(job, started, {"status": "PASS", **payload})
+        except command_port.CommandPortError as exc:
+            return _failed(job, started, str(exc))
+'''
     if marker not in source:
         raise RuntimeError("issue_inbox_execute_marker_missing")
-    ISSUE_INBOX.write_text(source.replace(marker, replacement, 1), encoding="utf-8")
+    source = source.replace(marker, replacement, 1)
+    ISSUE_INBOX.write_text(source, encoding="utf-8")
 
 
 def sha(path: Path) -> str:
