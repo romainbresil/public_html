@@ -10,45 +10,7 @@ permissions:
 
 jobs:
   publish-manifest:
-    if: github.actor != 'github-actions[bot]'
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: elan-vps-bridge-control-v1
-      - name: Build content-addressed runtime manifest
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib, json, pathlib
-          root = pathlib.Path('.elan-vps-bridge/bootstrap')
-          files = {}
-          for name in ('issue_inbox.py', 'bridge_worker.py', 'command_port.py'):
-              path = root / name
-              files[name] = {
-                  'path': f'.elan-vps-bridge/bootstrap/{name}',
-                  'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
-              }
-          manifest = {
-              'schema_version': '1.0',
-              'release_id': 'en2-g6-schema-read-cf92ed80',
-              'files': files,
-          }
-          (root / 'runtime-manifest.json').write_text(
-              json.dumps(manifest, sort_keys=True, separators=(',', ':')) + '\n',
-              encoding='utf-8',
-          )
-          PY
-      - name: Commit manifest
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .elan-vps-bridge/bootstrap/runtime-manifest.json
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m 'chore(bridge): publish content-addressed runtime manifest'
-          git push origin HEAD:elan-vps-bridge-control-v1
