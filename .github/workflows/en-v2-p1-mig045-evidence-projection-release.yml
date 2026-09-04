@@ -6,6 +6,7 @@ on:
       - elan-vps-bridge-control-v1
     paths:
       - '.elan-vps-bridge/bootstrap/apply-mig045-schema-migration-evidence-release.py'
+      - '.github/workflows/en-v2-p1-mig045-evidence-projection-release.yml'
 
 permissions:
   contents: write
