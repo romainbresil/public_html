@@ -1,0 +1,54 @@
+name: EN033 MIG045 Gate12B Proof ID Qualification
+
+on:
+  push:
+    branches:
+      - en033-m1-mig045-gate12b-durable-proof-2026-09-04
+    paths:
+      - '.elan-vps-bridge/bootstrap/**'
+      - '.github/workflows/en033-m1-mig045-gate12b-proof-id-qualify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile runtime
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/bridge_worker.py \
+            .elan-vps-bridge/bootstrap/command_port.py
+      - name: Gate12B canonical proof identity contract
+        run: |
+          set -euo pipefail
+          python3 .elan-vps-bridge/bootstrap/test_mig045_gate12b_committed_proof.py
+      - name: Existing bridge regressions
+        run: |
+          set -euo pipefail
+          python3 .elan-vps-bridge/bootstrap/test_issue_inbox_polling.py
+          python3 .elan-vps-bridge/bootstrap/test_p1_migration_registry_read.py
+          python3 .elan-vps-bridge/bootstrap/test_schema_migration_membership_projection.py
+          python3 .elan-vps-bridge/bootstrap/test_mig045_v1351_rollout_fresh_read.py
+      - name: Runtime manifest exact bytes
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root = pathlib.Path('.elan-vps-bridge/bootstrap')
+          manifest = json.loads((root / 'runtime-manifest.json').read_text(encoding='utf-8'))
+          assert set(manifest['files']) == {'issue_inbox.py', 'bridge_worker.py', 'command_port.py'}
+          for name, entry in manifest['files'].items():
+              raw = (root / name).read_bytes()
+              assert hashlib.sha256(raw).hexdigest() == entry['sha256'], name
+          print('RUNTIME_MANIFEST_EXACT_PASS')
+          PY
