@@ -113,7 +113,7 @@ class Gate12BProofIdentityContractTest(unittest.TestCase):
         bad_contexts = [
             {k: v for k, v in context().items() if k != "proof_id"},
             context(proof_id=""),
-            context(proof_id=PROOF_ID.upper()),
+            context(proof_id="AB" * 32),
             context(proof_id="a" * 63),
             context(proof_contract_sha256="A" * 64),
             context(expected="00" * 32),
