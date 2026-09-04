@@ -1,0 +1,50 @@
+name: EN V2 P1 MIG045 V1351 Risk Contract Hotfix
+
+on:
+  push:
+    branches:
+      - elan-vps-bridge-control-v1
+    paths:
+      - '.elan-vps-bridge/bootstrap/apply-mig045-v1351-risk-contract-hotfix.py'
+      - '.github/workflows/en-v2-p1-mig045-v1351-risk-contract-hotfix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: elan-vps-bridge-control-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply minimal MIG045 normalized risk fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .elan-vps-bridge/bootstrap/apply-mig045-v1351-risk-contract-hotfix.py
+          python -m py_compile \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/bridge_worker.py \
+            .elan-vps-bridge/bootstrap/command_port.py
+          python .elan-vps-bridge/bootstrap/test_issue_inbox_polling.py
+          python .elan-vps-bridge/bootstrap/test_p1_migration_registry_read.py
+          python .elan-vps-bridge/bootstrap/test_schema_migration_membership_projection.py
+          python .elan-vps-bridge/bootstrap/test_mig045_v1351_rollout_fresh_read.py
+          git diff --check
+      - name: Commit corrected closed runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            .elan-vps-bridge/bootstrap/command_port.py \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json
+          git diff --cached --quiet && { echo 'expected hotfix diff missing' >&2; exit 1; }
+          git commit -m 'fix: align MIG045 rollout with normalized reversible risk'
+          git push origin HEAD:elan-vps-bridge-control-v1
