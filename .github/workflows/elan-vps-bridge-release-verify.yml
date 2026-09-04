@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Verify runtime syntax, polling contract, P1 bounded read, schema migration evidence, and package hashes
+      - name: Verify runtime syntax, polling contract, P1 bounded read, schema migration evidence, MIG045 rollout/read, and package hashes
         shell: bash
         run: |
           set -euo pipefail
@@ -29,6 +29,7 @@ jobs:
           python3 .elan-vps-bridge/bootstrap/test_issue_inbox_polling.py
           python3 .elan-vps-bridge/bootstrap/test_p1_migration_registry_read.py
           python3 .elan-vps-bridge/bootstrap/test_schema_migration_membership_projection.py
+          python3 .elan-vps-bridge/bootstrap/test_mig045_v1351_rollout_fresh_read.py
           test "$(sha256sum .elan-vps-bridge/packages/en2-g5/20260903_en2_g5_001_knowledge_observation_capture.sql | awk '{print $1}')" = "9ba6de679ef3dd5382b7a0b2b5b3d6dada0dac0d5f6cabe3ad50e2739d4ec236"
           test "$(sha256sum .elan-vps-bridge/packages/en2-g5/20260903_en2_g5_001_knowledge_observation_capture.rollback.sql | awk '{print $1}')" = "4a5823e4dd95d61f3b92b47cbcefaa72184a751d00fcd724ca3f572f62eaecb8"
           echo "BRIDGE_RUNTIME_SHA256_BEGIN"
