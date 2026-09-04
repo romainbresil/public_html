@@ -166,24 +166,9 @@ def parse_issue_intent(issue: dict) -> dict | None:
             return None
         return job
     if job["intent_code"] == MIG045_GATE12B_INTENT:
-        context = job["context"]
-        if (
-            not isinstance(context, dict)
-            or set(context)
-            != {
-                "target",
-                "proof_id",
-                "proof_contract_sha256",
-                "expected_identity_set_sha256",
-            }
-            or context.get("target") != MIG045_GATE12B_TARGET
-            or not isinstance(context.get("proof_id"), str)
-            or _SHA256_RE.fullmatch(context["proof_id"]) is None
-            or not isinstance(context.get("proof_contract_sha256"), str)
-            or _SHA256_RE.fullmatch(context["proof_contract_sha256"]) is None
-            or context.get("expected_identity_set_sha256")
-            != MIG045_GATE12B_EXPECTED_IDENTITY_SET_SHA256
-        ):
+        try:
+            job["context"] = command_port.validate_mig045_gate12b_context(job["context"])
+        except command_port.CommandPortError:
             return None
         return job
     if job["intent_code"] == SELF_UPDATE_INTENT:
@@ -417,11 +402,11 @@ def _execute_job(job: dict) -> dict:
             return _failed(job, started, str(exc))
     if job["intent_code"] == MIG045_GATE12B_INTENT:
         try:
-            context = job["context"]
+            context = command_port.validate_mig045_gate12b_context(job["context"])
             payload = command_port.run_mig045_gate12b_committed_proof_v1(
-                context["proof_id"],
+                context["proof_contract"],
                 context["proof_contract_sha256"],
-                context["expected_identity_set_sha256"],
+                context["proof_id"],
             )
             return _completed(job, started, {"status": "PASS", **payload})
         except command_port.CommandPortError as exc:
@@ -445,6 +430,28 @@ def _execute_job(job: dict) -> dict:
     return bridge_worker.execute_intent(job)
 
 
+def _gate12b_claim_blocks_retry(state_root: pathlib.Path, job: dict) -> bool:
+    if job.get("intent_code") != MIG045_GATE12B_INTENT:
+        return True
+    result_path = pathlib.Path(state_root) / "results" / f"{job['id']}.json"
+    if not result_path.is_file():
+        return False
+    try:
+        stored = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    return (
+        isinstance(stored, dict)
+        and stored.get("id") == job.get("id")
+        and stored.get("intent_code") == MIG045_GATE12B_INTENT
+        and stored.get("state") == "COMPLETED"
+        and isinstance(stored.get("result"), dict)
+        and stored["result"].get("status") == "PASS"
+        and isinstance(stored.get("context"), dict)
+        and stored["context"].get("proof_id") == job["context"].get("proof_id")
+    )
+
+
 def process_issue(state_root: pathlib.Path, issue: dict) -> str:
     job = parse_issue_intent(issue)
     if job is None:
@@ -464,7 +471,8 @@ def process_issue(state_root: pathlib.Path, issue: dict) -> str:
     try:
         bridge_worker.create_claim(state_root, job["id"], source_sha)
     except bridge_worker.AlreadyClaimed:
-        return "ALREADY_CLAIMED"
+        if _gate12b_claim_blocks_retry(state_root, job):
+            return "ALREADY_CLAIMED"
     result = _execute_job(job)
     result["source_sha"] = source_sha
     result["source_issue_number"] = issue["number"]
@@ -486,7 +494,10 @@ def poll_issue_once(state_root: pathlib.Path) -> list[tuple[str, str]]:
         if job is None:
             continue
         job_id = job["id"]
-        if bridge_worker._claim_path(state_root, job_id).exists():
+        if (
+            bridge_worker._claim_path(state_root, job_id).exists()
+            and _gate12b_claim_blocks_retry(state_root, job)
+        ):
             continue
         status = process_issue(state_root, issue)
         return [(job_id, status)]
