@@ -93,11 +93,12 @@ class Mig045V1351RolloutFreshReadContractTest(unittest.TestCase):
                         "expected_version": "1.3.51",
                         "expected_source_commit": command_port.MIG045_SOURCE_COMMIT,
                     })
-                    return {"plan": {"risk": "reversible", "plan_id": "rollout-plan", "execution_token": "rollout-token", "procedure_sha256": "rollout-sha"}}
+                    return {"plan": {"risk": "reversible_technical_change", "plan_id": "rollout-plan", "execution_token": "rollout-token", "procedure_sha256": "rollout-sha"}}
                 self.assertEqual(step["primitive"], "postgres_query_template")
                 self.assertEqual(step["args"], {"profile": "business", "template": command_port.MIG045_READ_TEMPLATE, "parameters": []})
                 return {"plan": {"risk": "read_only", "plan_id": "read-plan", "execution_token": "read-token", "procedure_sha256": "read-sha"}}
             if operation == "start_run" and payload["plan_id"] == "rollout-plan":
+                self.assertEqual(payload["execution_class"], "reversible_technical_change")
                 return {"receipt": {"status": "succeeded", "run_id": "rollout-run", "steps": [{"step_id": "qualified-release-install", "status": "success", "result": {"version": "1.3.51"}}]}}
             if operation == "cleanup_artifact":
                 return {"result": {"status": "cleaned"}}
