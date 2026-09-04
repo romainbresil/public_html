@@ -20,6 +20,11 @@ ISSUE_AUTHOR = os.environ.get("ELAN_BRIDGE_ISSUE_AUTHOR", "romainbresil")
 ISSUE_TITLE_PREFIX = "EN-INTENT — "
 POLL_SECONDS = max(120, int(os.environ.get("ELAN_BRIDGE_POLL_SECONDS", "120")))
 SPRINT_PRO_READ_INTENT = "EN_CORE_STATUS_READ"
+SPRINT_PRO_SCHEMA_MIGRATION_EVIDENCE_CONTEXT = {
+    "target": "en-core",
+    "evidence_contract": command_port.SCHEMA_MIGRATION_EVIDENCE_CONTRACT,
+    "requested_ids": list(command_port.SCHEMA_MIGRATION_EVIDENCE_IDS),
+}
 G4_COMMERCIAL_INTENT = "EN2_G4_COMMERCIAL_CANARY_WRITE"
 G4_COMMERCIAL_CONTEXT = {"target": "en2-g4-commercial-canary"}
 G5_KNOWLEDGE_INTENT = "EN2_G5_KNOWLEDGE_CAPTURE_APPLY"
@@ -119,9 +124,11 @@ def parse_issue_intent(issue: dict) -> dict | None:
         "read_token": secrets.token_urlsafe(32),
     }
     if job["intent_code"] == SPRINT_PRO_READ_INTENT:
-        if job["context"] != {"target": "en-core"}:
-            return None
-        return job
+        if job["context"] == {"target": "en-core"}:
+            return job
+        if job["context"] == SPRINT_PRO_SCHEMA_MIGRATION_EVIDENCE_CONTEXT:
+            return job
+        return None
     if job["intent_code"] == G4_COMMERCIAL_INTENT:
         if job["context"] != G4_COMMERCIAL_CONTEXT:
             return None
@@ -321,7 +328,14 @@ def _execute_job(job: dict) -> dict:
     started = bridge_worker.now_iso()
     if job["intent_code"] == SPRINT_PRO_READ_INTENT:
         try:
-            payload = command_port.read_en_core_status_v1(job["id"])
+            if job["context"] == SPRINT_PRO_SCHEMA_MIGRATION_EVIDENCE_CONTEXT:
+                payload = command_port.read_en_core_status_v1(
+                    job["id"],
+                    evidence_contract=job["context"]["evidence_contract"],
+                    requested_ids=job["context"]["requested_ids"],
+                )
+            else:
+                payload = command_port.read_en_core_status_v1(job["id"])
             return _completed(job, started, {"status": "HEALTHY", **payload})
         except command_port.CommandPortError as exc:
             return _failed(job, started, str(exc))

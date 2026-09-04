@@ -12,6 +12,22 @@ from typing import Callable
 
 BROKER_SOCKET_PATH_DEFAULT = "/run/elan-vps-v1/control.sock"
 READ_STATUS_TEMPLATE = "en029_m6_schema_migrations_v1"
+SCHEMA_MIGRATION_EVIDENCE_CONTRACT = "schema_migration_membership_v1"
+SCHEMA_MIGRATION_EVIDENCE_IDS = (
+    "EN033_M1_MIG042_001",
+    "EN033_M1_MIG042_002",
+)
+SCHEMA_MIGRATION_EVIDENCE_PUBLIC_FIELDS = (
+    "migration_id",
+    "description",
+    "applied_at",
+)
+SCHEMA_MIGRATION_EVIDENCE_SOURCE_FIELDS = {
+    "kind",
+    "migration_id",
+    "description",
+    "applied_at",
+}
 G6_SCHEMA_COLUMNS_TEMPLATE = "en029_m6_schema_columns_chunks_v2"
 G6_SCHEMA_FUNCTIONS_TEMPLATE = "en029_m6_schema_functions_chunks_v2"
 G6_SCHEMA_CONSTRAINTS_TEMPLATE = "en029_m6_schema_constraints_indexes_chunks_v2"
@@ -109,7 +125,80 @@ def _fetch_control_path(relative_path: str) -> bytes:
     return payload
 
 
-def read_en_core_status_v1(request_id: str, request_fn: Callable[[dict], dict] = broker_request) -> dict:
+def _project_schema_migration_membership_v1(values: object, requested_ids: object) -> dict:
+    if (
+        not isinstance(requested_ids, list)
+        or len(requested_ids) < 1
+        or len(requested_ids) > 2
+        or tuple(requested_ids) != SCHEMA_MIGRATION_EVIDENCE_IDS
+    ):
+        raise CommandPortError("schema_migration_evidence_requested_ids_invalid")
+    if not isinstance(values, list):
+        raise CommandPortError("schema_migration_evidence_values_invalid")
+
+    matched_by_id = {}
+    requested = set(requested_ids)
+    for raw in values:
+        if not isinstance(raw, str) or raw.endswith("...[truncated]"):
+            raise CommandPortError("schema_migration_evidence_value_invalid")
+        try:
+            row = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise CommandPortError("schema_migration_evidence_json_invalid") from exc
+        if (
+            not isinstance(row, dict)
+            or set(row) != SCHEMA_MIGRATION_EVIDENCE_SOURCE_FIELDS
+            or row.get("kind") != "migration"
+            or not isinstance(row.get("migration_id"), str)
+            or not isinstance(row.get("description"), str)
+            or not isinstance(row.get("applied_at"), str)
+        ):
+            raise CommandPortError("schema_migration_evidence_source_contract_invalid")
+        migration_id = row["migration_id"]
+        if migration_id not in requested:
+            continue
+        if migration_id in matched_by_id:
+            raise CommandPortError("schema_migration_evidence_duplicate_id")
+        matched_by_id[migration_id] = {
+            field: row[field]
+            for field in SCHEMA_MIGRATION_EVIDENCE_PUBLIC_FIELDS
+        }
+
+    return {
+        "evidence_contract": SCHEMA_MIGRATION_EVIDENCE_CONTRACT,
+        "requested_ids": list(requested_ids),
+        "matched_rows": [
+            matched_by_id[migration_id]
+            for migration_id in requested_ids
+            if migration_id in matched_by_id
+        ],
+        "missing_ids": [
+            migration_id
+            for migration_id in requested_ids
+            if migration_id not in matched_by_id
+        ],
+    }
+
+
+def read_en_core_status_v1(
+    request_id: str,
+    request_fn: Callable[[dict], dict] = broker_request,
+    *,
+    evidence_contract: str | None = None,
+    requested_ids: list[str] | None = None,
+) -> dict:
+    evidence_requested = evidence_contract is not None or requested_ids is not None
+    if evidence_requested:
+        if evidence_contract != SCHEMA_MIGRATION_EVIDENCE_CONTRACT:
+            raise CommandPortError("schema_migration_evidence_contract_invalid")
+        if (
+            not isinstance(requested_ids, list)
+            or len(requested_ids) < 1
+            or len(requested_ids) > 2
+            or tuple(requested_ids) != SCHEMA_MIGRATION_EVIDENCE_IDS
+        ):
+            raise CommandPortError("schema_migration_evidence_requested_ids_invalid")
+
     key = _safe_key(request_id)
     prepared = request_fn({
         "operation": "prepare_procedure",
@@ -158,7 +247,8 @@ def read_en_core_status_v1(request_id: str, request_fn: Callable[[dict], dict] =
                 latest = parsed.get("migration_id")
         except (TypeError, json.JSONDecodeError):
             latest = None
-    return {
+
+    summary = {
         "status": "succeeded",
         "execution_class": "read_only",
         "template": READ_STATUS_TEMPLATE,
@@ -168,6 +258,26 @@ def read_en_core_status_v1(request_id: str, request_fn: Callable[[dict], dict] =
         "run_id": receipt.get("run_id"),
         "replayed": bool(receipt.get("replayed")),
     }
+    if not evidence_requested:
+        return summary
+
+    evidence = _project_schema_migration_membership_v1(values, requested_ids)
+    bounded_receipt = {
+        **summary,
+        "database_profile": "business",
+        "surface": "elan_naturel.schema_migrations",
+        "free_sql": False,
+        "external_action_allowed": False,
+        **evidence,
+    }
+    canonical = json.dumps(
+        bounded_receipt,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    bounded_receipt["receipt_sha256"] = hashlib.sha256(canonical).hexdigest()
+    return bounded_receipt
 
 
 def build_en2_g4_canary_payload_v1(request_id: str) -> dict:
