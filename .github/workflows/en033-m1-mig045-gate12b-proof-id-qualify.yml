@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   qualify:
@@ -21,6 +21,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Materialize minimal Gate12B bridge patch
+        run: |
+          set -euo pipefail
+          python3 .elan-vps-bridge/bootstrap/apply-mig045-gate12b-proof-id-release.py
       - name: Compile runtime
         run: |
           set -euo pipefail
@@ -45,10 +49,35 @@ jobs:
           python3 - <<'PY'
           import hashlib, json, pathlib
           root = pathlib.Path('.elan-vps-bridge/bootstrap')
-          manifest = json.loads((root / 'runtime-manifest.json').read_text(encoding='utf-8'))
+          manifest_path = root / 'runtime-manifest.json'
+          manifest_raw = manifest_path.read_bytes()
+          manifest = json.loads(manifest_raw.decode('utf-8'))
+          assert manifest['schema_version'] == '1.0'
+          assert manifest['release_id'] == 'bridge-mig045-gate12b-proof-id-20260905-v1'
           assert set(manifest['files']) == {'issue_inbox.py', 'bridge_worker.py', 'command_port.py'}
           for name, entry in manifest['files'].items():
               raw = (root / name).read_bytes()
-              assert hashlib.sha256(raw).hexdigest() == entry['sha256'], name
+              observed = hashlib.sha256(raw).hexdigest()
+              assert observed == entry['sha256'], (name, observed, entry['sha256'])
+              print(f'{name} {observed}')
+          print('RUNTIME_MANIFEST_SHA256', hashlib.sha256(manifest_raw).hexdigest())
           print('RUNTIME_MANIFEST_EXACT_PASS')
           PY
+      - name: Commit qualified runtime to reserved branch
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/command_port.py \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json; then
+            echo 'QUALIFIED_RUNTIME_ALREADY_COMMITTED'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/command_port.py \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json
+          git commit -m 'feat: bind MIG045 Gate12B execution to canonical proof_id'
+          git push origin HEAD:en033-m1-mig045-gate12b-durable-proof-2026-09-04
