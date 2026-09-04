@@ -1,0 +1,47 @@
+name: EN V2 P1 MIG045 Evidence Projection Release
+
+on:
+  push:
+    branches:
+      - elan-vps-bridge-control-v1
+    paths:
+      - '.elan-vps-bridge/bootstrap/apply-mig045-schema-migration-evidence-release.py'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: elan-vps-bridge-control-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply bounded schema migration evidence projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .elan-vps-bridge/bootstrap/apply-mig045-schema-migration-evidence-release.py
+          python -m py_compile \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/bridge_worker.py \
+            .elan-vps-bridge/bootstrap/command_port.py
+          python .elan-vps-bridge/bootstrap/test_issue_inbox_polling.py
+          python .elan-vps-bridge/bootstrap/test_p1_migration_registry_read.py
+          python .elan-vps-bridge/bootstrap/test_schema_migration_membership_projection.py
+      - name: Commit bounded evidence runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            .elan-vps-bridge/bootstrap/command_port.py \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json
+          git commit -m 'fix: expose bounded schema migration membership evidence'
+          git push origin HEAD:elan-vps-bridge-control-v1
