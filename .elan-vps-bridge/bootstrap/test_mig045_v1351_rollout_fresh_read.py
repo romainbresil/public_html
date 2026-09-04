@@ -60,6 +60,77 @@ class Mig045V1351RolloutFreshReadContractTest(unittest.TestCase):
             "observation_state_counts",
         })
 
+    def test_rollout_ready_cleanup_happen_before_exactly_one_fresh_read(self):
+        events = []
+        aggregate = {
+            "plan_count": 8,
+            "occurrence_count": 8,
+            "publication_state_counts": {"PLANNED": 1, "PROGRAMMED": 7, "PUBLISHED": 0},
+            "observation_state_counts": {
+                "NOT_OBSERVED": 8,
+                "AMBIGUOUS": 0,
+                "CONFIRMED_NOT_FOUND": 0,
+                "CONFIRMED_PUBLISHED": 0,
+            },
+        }
+        prepare_count = 0
+
+        def request_fn(payload):
+            nonlocal prepare_count
+            operation = payload["operation"]
+            events.append(operation)
+            if operation == "stage_https":
+                self.assertEqual(payload["expected_sha256"], command_port.MIG045_QUALIFIED_TRANSFER_SHA256)
+                self.assertEqual(payload["expected_size_bytes"], command_port.MIG045_QUALIFIED_TRANSFER_SIZE)
+                return {"artifact": {"artifact_id": "qualified-artifact"}}
+            if operation == "prepare_procedure":
+                prepare_count += 1
+                step = payload["procedure"]["steps"][0]
+                if prepare_count == 1:
+                    self.assertEqual(step["primitive"], "qualified_release_install")
+                    self.assertEqual(step["args"], {
+                        "artifact_id": "qualified-artifact",
+                        "expected_version": "1.3.51",
+                        "expected_source_commit": command_port.MIG045_SOURCE_COMMIT,
+                    })
+                    return {"plan": {"risk": "reversible", "plan_id": "rollout-plan", "execution_token": "rollout-token", "procedure_sha256": "rollout-sha"}}
+                self.assertEqual(step["primitive"], "postgres_query_template")
+                self.assertEqual(step["args"], {"profile": "business", "template": command_port.MIG045_READ_TEMPLATE, "parameters": []})
+                return {"plan": {"risk": "read_only", "plan_id": "read-plan", "execution_token": "read-token", "procedure_sha256": "read-sha"}}
+            if operation == "start_run" and payload["plan_id"] == "rollout-plan":
+                return {"receipt": {"status": "succeeded", "run_id": "rollout-run", "steps": [{"step_id": "qualified-release-install", "status": "success", "result": {"version": "1.3.51"}}]}}
+            if operation == "cleanup_artifact":
+                return {"result": {"status": "cleaned"}}
+            if operation == "start_run" and payload["plan_id"] == "read-plan":
+                return {"receipt": {"status": "succeeded", "execution_class": "read_only", "run_id": "read-run", "replayed": False, "steps": [{"step_id": "mig045-editorial-fresh-read", "status": "success", "result": {"template": command_port.MIG045_READ_TEMPLATE, "rows": 1, "sha256": "fresh-sha", "values": [json.dumps(aggregate, sort_keys=True)]}}]}}
+            self.fail(payload)
+
+        def ready_fn():
+            events.append("ready-proof")
+            return {"status": "ready", "version": "1.3.51"}
+
+        result = command_port.run_mig045_v1351_rollout_and_fresh_read_v1(
+            "gh-issue-999",
+            GOOD_URL,
+            request_fn=request_fn,
+            ready_fn=ready_fn,
+        )
+        self.assertEqual(result["ready_proof"]["version"], "1.3.51")
+        self.assertEqual(result["fresh_read"]["aggregate"], aggregate)
+        self.assertEqual(result["fresh_read"]["rows"], 1)
+        self.assertFalse(result["free_sql"])
+        self.assertFalse(result["external_action_allowed"])
+        self.assertEqual(events, [
+            "stage_https",
+            "prepare_procedure",
+            "start_run",
+            "ready-proof",
+            "cleanup_artifact",
+            "prepare_procedure",
+            "start_run",
+        ])
+        self.assertEqual(sum(1 for event in events if event == "prepare_procedure"), 2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
