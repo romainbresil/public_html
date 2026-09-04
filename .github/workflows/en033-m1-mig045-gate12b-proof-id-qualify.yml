@@ -81,3 +81,5 @@ jobs:
             .elan-vps-bridge/bootstrap/runtime-manifest.json
           git commit -m 'feat: bind MIG045 Gate12B execution to canonical proof_id'
           git push origin HEAD:en033-m1-mig045-gate12b-durable-proof-2026-09-04
+
+# gate12b-delta-red-refresh
