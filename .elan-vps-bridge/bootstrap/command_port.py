@@ -418,14 +418,14 @@ def run_mig045_v1351_rollout_and_fresh_read_v1(
         },
     })
     rollout_plan = rollout_prepared.get("plan")
-    if not isinstance(rollout_plan, dict) or rollout_plan.get("risk") != "reversible":
+    if not isinstance(rollout_plan, dict) or rollout_plan.get("risk") not in {"reversible", "reversible_technical_change"}:
         raise CommandPortError("mig045_rollout_plan_not_reversible")
     rollout_executed = request_fn({
         "operation": "start_run",
         "plan_id": rollout_plan.get("plan_id"),
         "execution_token": rollout_plan.get("execution_token"),
         "procedure_sha256": rollout_plan.get("procedure_sha256"),
-        "execution_class": "reversible",
+        "execution_class": "reversible_technical_change",
         "mode": "sync",
     })
     rollout_receipt = rollout_executed.get("receipt")
