@@ -119,3 +119,5 @@ jobs:
             .elan-vps-bridge/bootstrap/runtime-manifest.json
           git commit -m 'feat: canonicalize MIG045 Gate12B proof contract and replay'
           git push origin HEAD:en033-m1-mig045-gate12b-durable-proof-2026-09-04
+
+# fresh-readback-qualified-runtime
