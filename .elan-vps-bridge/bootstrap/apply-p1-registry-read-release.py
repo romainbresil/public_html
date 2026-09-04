@@ -11,13 +11,17 @@ MANIFEST = BOOTSTRAP / "runtime-manifest.json"
 P1_MARKER = "# EN2-P1 bounded canonical migration-registry read."
 
 P1_SECTION = r'''# EN2-P1 bounded canonical migration-registry read.
-# The canonical read-all call is preserved. Mission Control sanitizes individual
-# strings at 4096 bytes, so a large registry JSON can arrive intentionally
-# truncated. In that exact case, the four P1 preflight identities are recovered
-# with the already deployed single-entry MIG-037 template. No caller SQL exists.
+# The canonical read-all call remains a transport/provenance control, but a
+# sanitizer-damaged aggregate must never prevent bounded technical registry
+# entries from being read. The authoritative P1 diagnostic window is queried
+# entry-by-entry through the already deployed MIG-037 template. No caller SQL,
+# business row, or external action is permitted.
 P1_MIGRATION_REGISTRY_TEMPLATE = "en033_m1_mig037_registry_read_all_v1"
 P1_MIGRATION_REGISTRY_ENTRY_TEMPLATE = "en033_m1_mig037_registry_read_v1"
-P1_MIGRATION_REGISTRY_IDS = ("MIG-044", "MIG-045", "MIG-046", "MIG-050")
+P1_MIGRATION_REGISTRY_IDS = (
+    "MIG-042", "MIG-043", "MIG-044", "MIG-045", "MIG-046",
+    "MIG-047", "MIG-048", "MIG-049", "MIG-050",
+)
 
 
 def _p1_registry_entry_from_result(result: object, expected_migration_id: str):
@@ -77,8 +81,8 @@ def read_en2_p1_migration_registry_v1(
         "idempotency_key": f"en2-p1-migration-registry-read-{key}",
         "procedure": {
             "procedure_id": f"en2-p1-migration-registry-read-{key}",
-            "title": "EN2-P1 canonical registry read with bounded sanitizer-safe recovery",
-            "run_budget_seconds": 180,
+            "title": "EN2-P1 canonical registry read with bounded transport-safe recovery",
+            "run_budget_seconds": 360,
             "steps": steps,
         },
     })
@@ -101,7 +105,8 @@ def read_en2_p1_migration_registry_v1(
     ):
         raise CommandPortError("broker_p1_registry_read_failed")
     receipt_steps = receipt.get("steps")
-    if not isinstance(receipt_steps, list) or len(receipt_steps) != 5:
+    expected_count = 1 + len(P1_MIGRATION_REGISTRY_IDS)
+    if not isinstance(receipt_steps, list) or len(receipt_steps) != expected_count:
         raise CommandPortError("broker_p1_registry_receipt_invalid")
     by_id = {
         step.get("step_id"): step
@@ -130,11 +135,12 @@ def read_en2_p1_migration_registry_v1(
     else:
         try:
             complete_entries = json.loads(read_all_raw)
-        except json.JSONDecodeError as exc:
-            raise CommandPortError("broker_p1_registry_json_invalid") from exc
-        if not isinstance(complete_entries, list) or any(not isinstance(item, dict) for item in complete_entries):
-            raise CommandPortError("broker_p1_registry_contract_invalid")
-        read_all_transport = "COMPLETE_CROSSCHECKED"
+        except json.JSONDecodeError:
+            read_all_transport = "UNPARSEABLE_BOUNDED_FALLBACK"
+        else:
+            if not isinstance(complete_entries, list) or any(not isinstance(item, dict) for item in complete_entries):
+                raise CommandPortError("broker_p1_registry_contract_invalid")
+            read_all_transport = "COMPLETE_CROSSCHECKED"
 
     entries = []
     missing_migration_ids = []
@@ -160,17 +166,33 @@ def read_en2_p1_migration_registry_v1(
             if full_by_id.get(migration_id) != bounded_by_id[migration_id]:
                 raise CommandPortError("broker_p1_registry_crosscheck_mismatch")
 
+    migration_presence = {
+        migration_id: bounded_by_id[migration_id] is not None
+        for migration_id in P1_MIGRATION_REGISTRY_IDS
+    }
+    present_ids = [
+        migration_id
+        for migration_id in P1_MIGRATION_REGISTRY_IDS
+        if migration_presence[migration_id]
+    ]
+    latest_migration = max(present_ids) if present_ids else None
+
     return {
         "status": "succeeded",
         "execution_class": "read_only",
+        "database_profile": "business",
         "template": P1_MIGRATION_REGISTRY_TEMPLATE,
         "entry_template": P1_MIGRATION_REGISTRY_ENTRY_TEMPLATE,
         "canonical_read_all_invoked": True,
         "read_all_transport": read_all_transport,
+        "bounded_window": list(P1_MIGRATION_REGISTRY_IDS),
         "entries": entries,
+        "migration_presence": migration_presence,
         "missing_migration_ids": missing_migration_ids,
+        "latest_migration": latest_migration,
         "run_id": receipt.get("run_id"),
         "replayed": bool(receipt.get("replayed")),
+        "business_rows_emitted": False,
         "free_sql": False,
         "external_action_allowed": False,
     }
@@ -198,7 +220,7 @@ def main() -> int:
     }
     payload = {
         "files": files,
-        "release_id": "bridge-en2-p1-registry-read-20260903-v2",
+        "release_id": "bridge-en2-p1-registry-read-20260904-v3",
         "schema_version": "1.0",
     }
     MANIFEST.write_text(
