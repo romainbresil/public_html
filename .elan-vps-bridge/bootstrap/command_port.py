@@ -6,6 +6,7 @@ import json
 import os
 import re
 import socket
+import time
 import urllib.parse
 import urllib.request
 from typing import Callable
@@ -43,6 +44,25 @@ G5_ROLLBACK_SHA256 = "4a5823e4dd95d61f3b92b47cbcefaa72184a751d00fcd724ca3f572f62
 G5_EXPECTED_MIGRATION = "EN2_G5_001"
 _MAX_RESPONSE_BYTES = 4_194_304
 _MAX_PACKAGE_BYTES = 180_000
+MIG045_TARGET_VERSION = "1.3.51"
+MIG045_SOURCE_COMMIT = "275118ca38cd36cdbfc25c9cf9c72d1fca09b89f"
+MIG045_QUALIFIED_TRANSFER_SHA256 = "4825b62c4df34806c98d1379f1df325fbc3f571bceea20e5f05e17bccfd790e0"
+MIG045_QUALIFIED_TRANSFER_SIZE = 63986974
+MIG045_READ_TEMPLATE = "en033_m1_mig045_editorial_readback_v1"
+MIG045_EXPECTED_FIELDS = {
+    "plan_count",
+    "occurrence_count",
+    "publication_state_counts",
+    "observation_state_counts",
+}
+MIG045_PUBLICATION_STATES = {"PLANNED", "PROGRAMMED", "PUBLISHED"}
+MIG045_OBSERVATION_STATES = {
+    "NOT_OBSERVED",
+    "AMBIGUOUS",
+    "CONFIRMED_NOT_FOUND",
+    "CONFIRMED_PUBLISHED",
+}
+MIG045_READYZ_URL = "http://127.0.0.1:8787/readyz"
 _SAFE_ID = re.compile(r"[^A-Za-z0-9_.-]+")
 
 
@@ -278,6 +298,232 @@ def read_en_core_status_v1(
     ).encode("utf-8")
     bounded_receipt["receipt_sha256"] = hashlib.sha256(canonical).hexdigest()
     return bounded_receipt
+
+
+def validate_mig045_v1351_artifact_url(value: object) -> str:
+    if not isinstance(value, str) or len(value) < 16 or len(value) > 4096:
+        raise CommandPortError("mig045_artifact_url_invalid")
+    try:
+        parsed = urllib.parse.urlparse(value)
+    except ValueError as exc:
+        raise CommandPortError("mig045_artifact_url_invalid") from exc
+    host = (parsed.hostname or "").lower()
+    if (
+        parsed.scheme != "https"
+        or not host.endswith(".oaiusercontent.com")
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port not in (None, 443)
+        or not parsed.path.startswith("/files/")
+        or parsed.fragment
+    ):
+        raise CommandPortError("mig045_artifact_url_invalid")
+    return value
+
+
+def _mig045_wait_ready_v1351(timeout_seconds: int = 600) -> dict:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        try:
+            request = urllib.request.Request(
+                MIG045_READYZ_URL,
+                headers={"User-Agent": "elan-web-vps-bridge-mig045/1", "Cache-Control": "no-cache"},
+            )
+            with urllib.request.urlopen(request, timeout=5) as response:
+                proof = json.load(response)
+            if (
+                isinstance(proof, dict)
+                and proof.get("version") == MIG045_TARGET_VERSION
+                and proof.get("status") in {"ok", "ready"}
+            ):
+                return proof
+        except Exception:
+            pass
+        time.sleep(2)
+    raise CommandPortError("mig045_v1351_readiness_timeout")
+
+
+def _validate_mig045_ready_proof(proof: object) -> dict:
+    if (
+        not isinstance(proof, dict)
+        or proof.get("version") != MIG045_TARGET_VERSION
+        or proof.get("status") not in {"ok", "ready"}
+    ):
+        raise CommandPortError("mig045_v1351_ready_proof_invalid")
+    return proof
+
+
+def _validate_mig045_aggregate(value: object) -> dict:
+    if not isinstance(value, dict) or set(value) != MIG045_EXPECTED_FIELDS:
+        raise CommandPortError("mig045_fresh_read_contract_invalid")
+    for name in ("plan_count", "occurrence_count"):
+        count = value.get(name)
+        if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            raise CommandPortError("mig045_fresh_read_count_invalid")
+    publication = value.get("publication_state_counts")
+    observation = value.get("observation_state_counts")
+    if not isinstance(publication, dict) or set(publication) != MIG045_PUBLICATION_STATES:
+        raise CommandPortError("mig045_publication_state_contract_invalid")
+    if not isinstance(observation, dict) or set(observation) != MIG045_OBSERVATION_STATES:
+        raise CommandPortError("mig045_observation_state_contract_invalid")
+    for counts in (publication, observation):
+        for count in counts.values():
+            if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                raise CommandPortError("mig045_fresh_read_count_invalid")
+    occurrence_count = value["occurrence_count"]
+    if sum(publication.values()) != occurrence_count or sum(observation.values()) != occurrence_count:
+        raise CommandPortError("mig045_fresh_read_distribution_total_mismatch")
+    return value
+
+
+def run_mig045_v1351_rollout_and_fresh_read_v1(
+    request_id: str,
+    artifact_url: str,
+    request_fn: Callable[[dict], dict] = broker_request,
+    ready_fn: Callable[[], dict] = _mig045_wait_ready_v1351,
+) -> dict:
+    key = _safe_key(request_id).lower()
+    url = validate_mig045_v1351_artifact_url(artifact_url)
+    staged = request_fn({
+        "operation": "stage_https",
+        "url": url,
+        "expected_sha256": MIG045_QUALIFIED_TRANSFER_SHA256,
+        "expected_size_bytes": MIG045_QUALIFIED_TRANSFER_SIZE,
+        "media_type": "application/zip",
+        "label": f"qualified-connector-transfer:elan-vps-{MIG045_TARGET_VERSION}",
+    })
+    artifact_id = _artifact_id(staged)
+
+    rollout_prepared = request_fn({
+        "operation": "prepare_procedure",
+        "mission_id": "EN-041/M1",
+        "work_id": "W7",
+        "technical_authority": "JA-023",
+        "idempotency_key": f"mig045-v1351-rollout-{key}",
+        "procedure": {
+            "procedure_id": f"mig045-v1351-rollout-{key}",
+            "title": "MIG045 closed rollout VPS 1.3.51",
+            "run_budget_seconds": 3600,
+            "steps": [{
+                "step_id": "qualified-release-install",
+                "primitive": "qualified_release_install",
+                "args": {
+                    "artifact_id": artifact_id,
+                    "expected_version": MIG045_TARGET_VERSION,
+                    "expected_source_commit": MIG045_SOURCE_COMMIT,
+                },
+                "timeout_seconds": 3600,
+                "resource_lock": "qualified-release",
+            }],
+        },
+    })
+    rollout_plan = rollout_prepared.get("plan")
+    if not isinstance(rollout_plan, dict) or rollout_plan.get("risk") != "reversible":
+        raise CommandPortError("mig045_rollout_plan_not_reversible")
+    rollout_executed = request_fn({
+        "operation": "start_run",
+        "plan_id": rollout_plan.get("plan_id"),
+        "execution_token": rollout_plan.get("execution_token"),
+        "procedure_sha256": rollout_plan.get("procedure_sha256"),
+        "execution_class": "reversible",
+        "mode": "sync",
+    })
+    rollout_receipt = rollout_executed.get("receipt")
+    if not isinstance(rollout_receipt, dict) or rollout_receipt.get("status") != "succeeded":
+        raise CommandPortError("mig045_qualified_release_install_failed")
+    rollout_steps = rollout_receipt.get("steps")
+    if not isinstance(rollout_steps, list) or len(rollout_steps) != 1 or not isinstance(rollout_steps[0], dict):
+        raise CommandPortError("mig045_rollout_receipt_invalid")
+    rollout_step = rollout_steps[0]
+    if rollout_step.get("step_id") != "qualified-release-install" or rollout_step.get("status") != "success":
+        raise CommandPortError("mig045_rollout_step_failed")
+
+    ready_proof = _validate_mig045_ready_proof(ready_fn())
+
+    cleanup_response = request_fn({"operation": "cleanup_artifact", "artifact_id": artifact_id})
+    cleanup = cleanup_response.get("result")
+    if not isinstance(cleanup, dict):
+        raise CommandPortError("mig045_transport_cleanup_invalid")
+
+    read_prepared = request_fn({
+        "operation": "prepare_procedure",
+        "mission_id": "EN-033/M1",
+        "work_id": "MIG045-CLOSED-EDITORIAL-FRESH-READ",
+        "technical_authority": "JA-023",
+        "idempotency_key": f"mig045-editorial-fresh-read-{key}",
+        "procedure": {
+            "procedure_id": f"mig045-editorial-fresh-read-{key}",
+            "title": "MIG045 one closed editorial aggregate fresh read",
+            "run_budget_seconds": 60,
+            "steps": [{
+                "step_id": "mig045-editorial-fresh-read",
+                "primitive": "postgres_query_template",
+                "args": {"profile": "business", "template": MIG045_READ_TEMPLATE, "parameters": []},
+                "timeout_seconds": 30,
+            }],
+        },
+    })
+    read_plan = read_prepared.get("plan")
+    if not isinstance(read_plan, dict) or read_plan.get("risk") != "read_only":
+        raise CommandPortError("mig045_fresh_read_plan_not_read_only")
+    read_executed = request_fn({
+        "operation": "start_run",
+        "plan_id": read_plan.get("plan_id"),
+        "execution_token": read_plan.get("execution_token"),
+        "procedure_sha256": read_plan.get("procedure_sha256"),
+        "execution_class": "read_only",
+        "mode": "sync",
+    })
+    read_receipt = read_executed.get("receipt")
+    if (
+        not isinstance(read_receipt, dict)
+        or read_receipt.get("status") != "succeeded"
+        or read_receipt.get("execution_class") != "read_only"
+    ):
+        raise CommandPortError("mig045_fresh_read_failed")
+    read_steps = read_receipt.get("steps")
+    if not isinstance(read_steps, list) or len(read_steps) != 1 or not isinstance(read_steps[0], dict):
+        raise CommandPortError("mig045_fresh_read_receipt_invalid")
+    read_step = read_steps[0]
+    result = read_step.get("result")
+    if (
+        read_step.get("step_id") != "mig045-editorial-fresh-read"
+        or read_step.get("status") != "success"
+        or not isinstance(result, dict)
+        or result.get("template") != MIG045_READ_TEMPLATE
+        or result.get("rows") != 1
+    ):
+        raise CommandPortError("mig045_fresh_read_result_invalid")
+    values = result.get("values")
+    if not isinstance(values, list) or len(values) != 1 or not isinstance(values[0], str):
+        raise CommandPortError("mig045_fresh_read_cardinality_invalid")
+    try:
+        aggregate = _validate_mig045_aggregate(json.loads(values[0]))
+    except json.JSONDecodeError as exc:
+        raise CommandPortError("mig045_fresh_read_json_invalid") from exc
+
+    return {
+        "status": "succeeded",
+        "target_version": MIG045_TARGET_VERSION,
+        "source_commit": MIG045_SOURCE_COMMIT,
+        "qualified_transfer_sha256": MIG045_QUALIFIED_TRANSFER_SHA256,
+        "qualified_transfer_size_bytes": MIG045_QUALIFIED_TRANSFER_SIZE,
+        "rollout_run_id": rollout_receipt.get("run_id"),
+        "ready_proof": ready_proof,
+        "transport_cleanup": cleanup,
+        "fresh_read": {
+            "database_profile": "business",
+            "template": MIG045_READ_TEMPLATE,
+            "execution_class": "read_only",
+            "rows": 1,
+            "sha256": result.get("sha256"),
+            "run_id": read_receipt.get("run_id"),
+            "replayed": bool(read_receipt.get("replayed")),
+            "aggregate": aggregate,
+        },
+        "free_sql": False,
+        "external_action_allowed": False,
+    }
 
 
 def build_en2_g4_canary_payload_v1(request_id: str) -> dict:
