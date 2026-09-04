@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Materialize minimal Gate12B bridge patch
+      - name: Materialize canonical Gate12B bridge patch
         run: |
           set -euo pipefail
           python3 .elan-vps-bridge/bootstrap/apply-mig045-gate12b-proof-id-release.py
@@ -32,7 +32,7 @@ jobs:
             .elan-vps-bridge/bootstrap/issue_inbox.py \
             .elan-vps-bridge/bootstrap/bridge_worker.py \
             .elan-vps-bridge/bootstrap/command_port.py
-      - name: Gate12B canonical proof identity contract
+      - name: Gate12B canonical proof contract
         run: |
           set -euo pipefail
           python3 .elan-vps-bridge/bootstrap/test_mig045_gate12b_committed_proof.py
@@ -53,7 +53,7 @@ jobs:
           manifest_raw = manifest_path.read_bytes()
           manifest = json.loads(manifest_raw.decode('utf-8'))
           assert manifest['schema_version'] == '1.0'
-          assert manifest['release_id'] == 'bridge-mig045-gate12b-proof-id-20260905-v1'
+          assert manifest['release_id'] == 'bridge-mig045-gate12b-canonical-proof-20260905-v2'
           assert set(manifest['files']) == {'issue_inbox.py', 'bridge_worker.py', 'command_port.py'}
           for name, entry in manifest['files'].items():
               raw = (root / name).read_bytes()
@@ -62,6 +62,44 @@ jobs:
               print(f'{name} {observed}')
           print('RUNTIME_MANIFEST_SHA256', hashlib.sha256(manifest_raw).hexdigest())
           print('RUNTIME_MANIFEST_EXACT_PASS')
+          PY
+      - name: BRIDGE_SELF_UPDATE contract on temporary runtime
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, pathlib, tempfile, sys
+          root = pathlib.Path('.elan-vps-bridge/bootstrap').resolve()
+          sys.path.insert(0, str(root))
+          import issue_inbox
+          manifest_path = root / 'runtime-manifest.json'
+          manifest_raw = manifest_path.read_bytes()
+          manifest_sha = hashlib.sha256(manifest_raw).hexdigest()
+          payloads = {
+              issue_inbox.SELF_UPDATE_MANIFEST_PATH: manifest_raw,
+              **{
+                  f'{issue_inbox.SELF_UPDATE_BASE_PATH}/{name}': (root / name).read_bytes()
+                  for name in issue_inbox.SELF_UPDATE_RUNTIME_FILES
+              },
+          }
+          with tempfile.TemporaryDirectory() as tmp:
+              tmp = pathlib.Path(tmp)
+              app_root = tmp / 'app'
+              state_root = tmp / 'state'
+              app_root.mkdir()
+              for name in issue_inbox.SELF_UPDATE_RUNTIME_FILES:
+                  (app_root / name).write_bytes((root / name).read_bytes())
+              result = issue_inbox.apply_self_update(
+                  state_root,
+                  app_root,
+                  manifest_sha,
+                  fetch_fn=lambda path: payloads[path],
+              )
+              assert result['status'] == 'ALREADY_CURRENT', result
+              assert result['manifest_sha256'] == manifest_sha
+              assert result['updated_files'] == []
+              assert result['restart_after_post'] is False
+              assert result['external_action_allowed'] is False
+          print('BRIDGE_SELF_UPDATE_TEMP_PASS', manifest_sha)
           PY
       - name: Commit qualified runtime to reserved branch
         run: |
@@ -79,7 +117,5 @@ jobs:
             .elan-vps-bridge/bootstrap/issue_inbox.py \
             .elan-vps-bridge/bootstrap/command_port.py \
             .elan-vps-bridge/bootstrap/runtime-manifest.json
-          git commit -m 'feat: bind MIG045 Gate12B execution to canonical proof_id'
+          git commit -m 'feat: canonicalize MIG045 Gate12B proof contract and replay'
           git push origin HEAD:en033-m1-mig045-gate12b-durable-proof-2026-09-04
-
-# gate12b-delta-red-refresh
