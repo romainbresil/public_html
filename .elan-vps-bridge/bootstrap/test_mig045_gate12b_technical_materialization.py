@@ -35,9 +35,9 @@ ROLLBACK_RELATIVE_PATH = (
     ".elan-vps-bridge/packages/mig045-gate12b/"
     "20260905_en033_m1_mig045_gate12b_proof_ledger.rollback.sql"
 )
-REPO_ROOT = BOOTSTRAP.parent.parent
-MIGRATION_PATH = REPO_ROOT / "packages/mig045-gate12b/20260905_en033_m1_mig045_gate12b_proof_ledger.sql"
-ROLLBACK_PATH = REPO_ROOT / "packages/mig045-gate12b/20260905_en033_m1_mig045_gate12b_proof_ledger.rollback.sql"
+BRIDGE_ROOT = BOOTSTRAP.parent
+MIGRATION_PATH = BRIDGE_ROOT / "packages/mig045-gate12b/20260905_en033_m1_mig045_gate12b_proof_ledger.sql"
+ROLLBACK_PATH = BRIDGE_ROOT / "packages/mig045-gate12b/20260905_en033_m1_mig045_gate12b_proof_ledger.rollback.sql"
 
 
 def issue(context: dict) -> dict:
