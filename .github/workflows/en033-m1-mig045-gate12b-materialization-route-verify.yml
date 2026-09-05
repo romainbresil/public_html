@@ -1,0 +1,48 @@
+name: EN033 MIG045 Gate12B Materialization Route Verify
+
+on:
+  push:
+    branches:
+      - en033-m1-mig045-gate12b-durable-proof-2026-09-04
+      - elan-vps-bridge-control-v1
+    paths:
+      - ".elan-vps-bridge/bootstrap/**"
+      - ".elan-vps-bridge/packages/mig045-gate12b/**"
+      - ".github/workflows/en033-m1-mig045-gate12b-materialization-route-verify.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Qualify exact Gate12B package hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GATE12B_MIGRATION_SHA256=$(sha256sum .elan-vps-bridge/packages/mig045-gate12b/20260905_en033_m1_mig045_gate12b_proof_ledger.sql | awk '{print $1}')"
+          echo "GATE12B_ROLLBACK_SHA256=$(sha256sum .elan-vps-bridge/packages/mig045-gate12b/20260905_en033_m1_mig045_gate12b_proof_ledger.rollback.sql | awk '{print $1}')"
+      - name: Verify runtime syntax and full bridge non-regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/bridge_worker.py \
+            .elan-vps-bridge/bootstrap/command_port.py
+          for test_file in .elan-vps-bridge/bootstrap/test_*.py; do
+            echo "RUNNING_TEST=$test_file"
+            python3 "$test_file"
+          done
+      - name: Emit runtime and manifest hashes
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUNTIME_ISSUE_INBOX_SHA256=$(sha256sum .elan-vps-bridge/bootstrap/issue_inbox.py | awk '{print $1}')"
+          echo "RUNTIME_BRIDGE_WORKER_SHA256=$(sha256sum .elan-vps-bridge/bootstrap/bridge_worker.py | awk '{print $1}')"
+          echo "RUNTIME_COMMAND_PORT_SHA256=$(sha256sum .elan-vps-bridge/bootstrap/command_port.py | awk '{print $1}')"
+          echo "RUNTIME_MANIFEST_SHA256=$(sha256sum .elan-vps-bridge/bootstrap/runtime-manifest.json | awk '{print $1}')"
