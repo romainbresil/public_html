@@ -1,0 +1,52 @@
+name: EN033 MIG045 Gate12B Reversible Contract Fix
+
+on:
+  push:
+    branches:
+      - en033-m1-mig045-gate12b-durable-proof-2026-09-04
+    paths:
+      - '.elan-vps-bridge/bootstrap/apply-mig045-gate12b-reversible-contract-fix.py'
+      - '.github/workflows/en033-m1-mig045-gate12b-reversible-contract-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: en033-m1-mig045-gate12b-durable-proof-2026-09-04
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply broker-owned reversible contract correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .elan-vps-bridge/bootstrap/apply-mig045-gate12b-reversible-contract-fix.py
+          python -m py_compile \
+            .elan-vps-bridge/bootstrap/issue_inbox.py \
+            .elan-vps-bridge/bootstrap/bridge_worker.py \
+            .elan-vps-bridge/bootstrap/command_port.py
+          for test_file in .elan-vps-bridge/bootstrap/test_*.py; do
+            echo "RUNNING_TEST=$test_file"
+            python "$test_file"
+          done
+          git diff --check
+      - name: Commit corrected qualified runtime only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            .elan-vps-bridge/bootstrap/command_port.py \
+            .elan-vps-bridge/bootstrap/runtime-manifest.json \
+            .elan-vps-bridge/bootstrap/apply-mig045-gate12b-materialization-route.py \
+            .elan-vps-bridge/bootstrap/test_mig045_gate12b_technical_materialization.py
+          git diff --cached --quiet && { echo 'NO_CORRECTION_DELTA'; exit 1; }
+          git commit -m 'fix: bind Gate12B execution class to reversible broker plan'
+          git push origin HEAD:en033-m1-mig045-gate12b-durable-proof-2026-09-04
