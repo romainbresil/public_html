@@ -199,7 +199,7 @@ class Gate12BTechnicalMaterializationExecutionTests(unittest.TestCase):
                     }
                     self.assertTrue(forbidden_primitives.isdisjoint({step["primitive"] for step in steps}))
                     return {"plan": {
-                        "risk": "reversible_technical_change",
+                        "risk": "reversible",
                         "plan_id": "migration-plan",
                         "execution_token": "migration-token",
                         "procedure_sha256": "a" * 64,
@@ -215,16 +215,16 @@ class Gate12BTechnicalMaterializationExecutionTests(unittest.TestCase):
                 })
                 self.assertEqual(steps[0]["resource_lock"], "qualified-release")
                 return {"plan": {
-                    "risk": "reversible_technical_change",
+                    "risk": "reversible",
                     "plan_id": "release-plan",
                     "execution_token": "release-token",
                     "procedure_sha256": "b" * 64,
                 }}
             if operation == "start_run" and payload["plan_id"] == "migration-plan":
-                self.assertEqual(payload["execution_class"], "reversible_technical_change")
+                self.assertEqual(payload["execution_class"], "reversible")
                 return {"receipt": {
                     "status": "succeeded",
-                    "execution_class": "reversible_technical_change",
+                    "execution_class": "reversible",
                     "run_id": "migration-run",
                     "steps": [
                         {"step_id": "preflight", "status": "success", "result": {
@@ -238,10 +238,10 @@ class Gate12BTechnicalMaterializationExecutionTests(unittest.TestCase):
                     ],
                 }}
             if operation == "start_run" and payload["plan_id"] == "release-plan":
-                self.assertEqual(payload["execution_class"], "reversible_technical_change")
+                self.assertEqual(payload["execution_class"], "reversible")
                 return {"receipt": {
                     "status": "succeeded",
-                    "execution_class": "reversible_technical_change",
+                    "execution_class": "reversible",
                     "run_id": "release-run",
                     "steps": [{
                         "step_id": "qualified-release-install",

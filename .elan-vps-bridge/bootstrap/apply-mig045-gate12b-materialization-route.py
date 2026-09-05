@@ -73,7 +73,6 @@ MIG045_GATE12B_MIGRATION_PATH = ".elan-vps-bridge/packages/mig045-gate12b/202609
 MIG045_GATE12B_ROLLBACK_PATH = ".elan-vps-bridge/packages/mig045-gate12b/20260905_en033_m1_mig045_gate12b_proof_ledger.rollback.sql"
 MIG045_GATE12B_MIGRATION_SHA256 = "093fd0ff7898113219c148042f84121783d647f1a97806ea44110b9ce7aeec2a"
 MIG045_GATE12B_ROLLBACK_SHA256 = "c9169ef827336ddd9db96979c54cd97cbeaef020be1da23bd1948d34ce2cdbcb"
-MIG045_GATE12B_TECHNICAL_EXECUTION_CLASS = "reversible_technical_change"
 MIG045_GATE12B_TECHNICAL_RESOURCE_LOCK = "postgres-business-en033-mig045-gate12b"
 
 
@@ -170,7 +169,7 @@ def _mig045_gate12b_reversible_plan(prepared: object, label: str) -> dict:
     plan = prepared.get("plan")
     if (
         not isinstance(plan, dict)
-        or plan.get("risk") not in {"reversible", MIG045_GATE12B_TECHNICAL_EXECUTION_CLASS}
+        or plan.get("risk") != "reversible"
         or not isinstance(plan.get("plan_id"), str)
         or not plan.get("plan_id")
         or not isinstance(plan.get("execution_token"), str)
@@ -192,7 +191,7 @@ def _mig045_gate12b_run_plan(
         "plan_id": plan["plan_id"],
         "execution_token": plan["execution_token"],
         "procedure_sha256": plan["procedure_sha256"],
-        "execution_class": MIG045_GATE12B_TECHNICAL_EXECUTION_CLASS,
+        "execution_class": plan["risk"],
         "mode": "sync",
     })
     if not isinstance(executed, dict):
@@ -201,7 +200,7 @@ def _mig045_gate12b_run_plan(
     if (
         not isinstance(receipt, dict)
         or receipt.get("status") != "succeeded"
-        or receipt.get("execution_class") != MIG045_GATE12B_TECHNICAL_EXECUTION_CLASS
+        or receipt.get("execution_class") != plan["risk"]
         or not isinstance(receipt.get("run_id"), str)
         or not receipt.get("run_id")
     ):
