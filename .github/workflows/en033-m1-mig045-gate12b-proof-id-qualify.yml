@@ -32,6 +32,10 @@ jobs:
             .elan-vps-bridge/bootstrap/issue_inbox.py \
             .elan-vps-bridge/bootstrap/bridge_worker.py \
             .elan-vps-bridge/bootstrap/command_port.py
+      - name: Gate12B A-B final binding delta
+        run: |
+          set -euo pipefail
+          python3 .elan-vps-bridge/bootstrap/test_mig045_gate12b_a_b_final_binding.py
       - name: Gate12B canonical proof contract
         run: |
           set -euo pipefail
@@ -120,4 +124,4 @@ jobs:
           git commit -m 'feat: canonicalize MIG045 Gate12B proof contract and replay'
           git push origin HEAD:en033-m1-mig045-gate12b-durable-proof-2026-09-04
 
-# fresh-readback-qualified-runtime
+# gate12b-a-b-integration-red
