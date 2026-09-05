@@ -47,4 +47,4 @@ jobs:
           echo "RUNTIME_COMMAND_PORT_SHA256=$(sha256sum .elan-vps-bridge/bootstrap/command_port.py | awk '{print $1}')"
           echo "RUNTIME_MANIFEST_SHA256=$(sha256sum .elan-vps-bridge/bootstrap/runtime-manifest.json | awk '{print $1}')"
 
-# Verification-only touch after reversible-contract correction; no runtime bytes changed.
+# Fresh GREEN qualification touch for owner-backed Gate12B plan-risk repair; no runtime bytes changed.
