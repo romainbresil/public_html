@@ -127,4 +127,4 @@ jobs:
           git commit -m 'feat: integrate MIG045 Gate12B final A-B owners'
           git push origin HEAD:en033-m1-mig045-gate12b-durable-proof-2026-09-04
 
-# gate12b-a-b-final-binding-green-v2
+# gate12b-a-b-final-binding-fresh-readback
