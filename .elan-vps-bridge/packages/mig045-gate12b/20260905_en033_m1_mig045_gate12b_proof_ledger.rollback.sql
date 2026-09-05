@@ -1,0 +1,12 @@
+BEGIN;
+DROP FUNCTION IF EXISTS elan_naturel.commit_mig045_gate12b_proof_v1(jsonb);
+DROP TABLE IF EXISTS elan_naturel.mig045_gate12b_committed_proofs;
+REVOKE SELECT ON elan_naturel.editorial_publication_plans FROM en_gate12b_owner;
+REVOKE SELECT ON elan_naturel.editorial_publication_occurrences FROM en_gate12b_owner;
+REVOKE USAGE ON SCHEMA elan_naturel FROM en_gate12b_executor;
+REVOKE USAGE ON SCHEMA elan_naturel FROM en_gate12b_owner;
+REVOKE en_gate12b_executor FROM CURRENT_USER;
+DROP ROLE en_gate12b_executor;
+DROP ROLE en_gate12b_owner;
+DELETE FROM elan_naturel.schema_migrations WHERE migration_id = 'EN033_M1_MIG045_GATE12B_PROOF_LEDGER_V1';
+COMMIT;
