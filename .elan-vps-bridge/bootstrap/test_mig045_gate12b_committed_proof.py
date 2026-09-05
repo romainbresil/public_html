@@ -27,11 +27,11 @@ EXPECTED_IDENTITY_SET_SHA256 = "dc731702f983999e083563477216054bfcee5674eff03a5d
 CORPUS = [f"CON-{number:03d}" for number in range(20, 28)]
 
 RUNTIME_VERSION = "1.3.52"
-RUNTIME_SOURCE_COMMIT = "aa" * 20
-CAPABILITY_SHA256 = "bb" * 32
+RUNTIME_SOURCE_COMMIT = "b8a5672d090fb0ddceb552e5029cf04b736da44d"
+CAPABILITY_SHA256 = "b51a4bf09041f42af28b737f868710d5377123eb0747ae4fd6e2fd290a006729"
 EFFECTIVE_POLICY_SHA256 = "cc" * 32
-COMMAND_TEMPLATE_SHA256 = "dd" * 32
-SQL_OWNER_SHA256 = "ee" * 32
+COMMAND_TEMPLATE_SHA256 = "6fff7e691aaa4cbc7d3b789e8b111988bc08d2680e911e6298c4d16fcceb123a"
+SQL_OWNER_SHA256 = "77c7c90c25f2eefe7827a1c0c469b5a1343ca0646aa9c29d485e3dc1edd2fa25"
 TARGET_BINDING_SHA256 = "ff" * 32
 
 DECISION_IDS = {
@@ -372,7 +372,7 @@ class Gate12BCanonicalProofContractTests(unittest.TestCase):
         def forbidden_request(_payload):
             raise AssertionError("contract collision must fail before broker")
 
-        with self.assertRaisesRegex(command_port.CommandPortError, "proof_id_mismatch"):
+        with self.assertRaisesRegex(command_port.CommandPortError, "static_binding_mismatch|proof_id_mismatch"):
             command_port.run_mig045_gate12b_committed_proof_v1(
                 changed,
                 changed_sha,
@@ -387,15 +387,16 @@ class Gate12BPreflightTests(unittest.TestCase):
     def test_missing_runtime_preflight_owner_fails_closed_before_broker(self):
         ctx = context()
 
-        def forbidden_request(_payload):
-            raise AssertionError("business broker path must not start without technical preflight owner")
+        def unavailable_preflight(payload):
+            self.assertEqual(payload, {"operation": "gate12b_technical_preflight"})
+            raise command_port.CommandPortError("broker_unavailable")
 
-        with self.assertRaisesRegex(command_port.CommandPortError, "preflight_owner_not_bound"):
+        with self.assertRaisesRegex(command_port.CommandPortError, "broker_unavailable"):
             command_port.run_mig045_gate12b_committed_proof_v1(
                 ctx["proof_contract"],
                 ctx["proof_contract_sha256"],
                 ctx["proof_id"],
-                request_fn=forbidden_request,
+                request_fn=unavailable_preflight,
                 state_root=pathlib.Path("unused"),
             )
 

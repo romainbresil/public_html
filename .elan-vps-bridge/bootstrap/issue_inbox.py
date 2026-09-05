@@ -44,6 +44,8 @@ MIG045_V1351_TARGET = "mig045-v1351-rollout-and-fresh-read"
 MIG045_GATE12B_INTENT = "MIG045_GATE12B_COMMITTED_PROOF_V1"
 MIG045_GATE12B_TARGET = command_port.MIG045_GATE12B_TARGET
 MIG045_GATE12B_EXPECTED_IDENTITY_SET_SHA256 = command_port.MIG045_GATE12B_EXPECTED_IDENTITY_SET_SHA256
+MIG045_GATE12B_PREFLIGHT_INTENT = "MIG045_GATE12B_TECHNICAL_PREFLIGHT_FREEZE_V1"
+MIG045_GATE12B_PREFLIGHT_CONTEXT = {"target": "mig045-gate12b-technical-preflight-freeze"}
 SELF_UPDATE_INTENT = "BRIDGE_SELF_UPDATE"
 SELF_UPDATE_MANIFEST_PATH = ".elan-vps-bridge/bootstrap/runtime-manifest.json"
 SELF_UPDATE_RUNTIME_FILES = ("issue_inbox.py", "bridge_worker.py", "command_port.py")
@@ -163,6 +165,10 @@ def parse_issue_intent(issue: dict) -> dict | None:
         try:
             command_port.validate_mig045_v1351_artifact_url(context.get("artifact_url"))
         except command_port.CommandPortError:
+            return None
+        return job
+    if job["intent_code"] == MIG045_GATE12B_PREFLIGHT_INTENT:
+        if job["context"] != MIG045_GATE12B_PREFLIGHT_CONTEXT:
             return None
         return job
     if job["intent_code"] == MIG045_GATE12B_INTENT:
@@ -397,6 +403,12 @@ def _execute_job(job: dict) -> dict:
                 job["id"],
                 job["context"]["artifact_url"],
             )
+            return _completed(job, started, {"status": "PASS", **payload})
+        except command_port.CommandPortError as exc:
+            return _failed(job, started, str(exc))
+    if job["intent_code"] == MIG045_GATE12B_PREFLIGHT_INTENT:
+        try:
+            payload = command_port.request_mig045_gate12b_production_proof_freeze()
             return _completed(job, started, {"status": "PASS", **payload})
         except command_port.CommandPortError as exc:
             return _failed(job, started, str(exc))

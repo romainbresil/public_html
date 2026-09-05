@@ -71,6 +71,17 @@ MIG045_GATE12B_EXECUTION_CLASS = "mutating_technical_change"
 MIG045_GATE12B_OBSERVATION_SEMANTICS = "COMMITTED_PROOF_TRANSACTION_V1"
 MIG045_GATE12B_PROOF_ID_DOMAIN = "EN033/M1:MIG045:G12B:COMMITTED_PROOF_TRANSACTION_V1:"
 MIG045_GATE12B_CORPUS = tuple(f"CON-{number:03d}" for number in range(20, 28))
+MIG045_GATE12B_A_TECHNICAL_HEAD = "b8a5672d090fb0ddceb552e5029cf04b736da44d"
+MIG045_GATE12B_RUNTIME_VERSION = "1.3.52"
+MIG045_GATE12B_CAPABILITY_SHA256 = "b51a4bf09041f42af28b737f868710d5377123eb0747ae4fd6e2fd290a006729"
+MIG045_GATE12B_COMMAND_TEMPLATE_SHA256 = "6fff7e691aaa4cbc7d3b789e8b111988bc08d2680e911e6298c4d16fcceb123a"
+MIG045_GATE12B_SQL_OWNER_SHA256 = "77c7c90c25f2eefe7827a1c0c469b5a1343ca0646aa9c29d485e3dc1edd2fa25"
+MIG045_GATE12B_RESOLVED_DATABASE = "postgres"
+MIG045_GATE12B_RESOLVED_ROLE = "en_gate12b_executor"
+MIG045_GATE12B_POSTGRES_PROFILE = "business"
+MIG045_GATE12B_SCHEMA = "elan_naturel"
+MIG045_GATE12B_CORPUS_IDENTIFIER = "CON-020..CON-027"
+MIG045_GATE12B_CORPUS_SHA256 = "cd0f4bde395351cbdb99b9d6f342cc0718d2be5276ca06000e44162d00bebcef"
 _GATE12B_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 _GATE12B_COMMIT_RE = re.compile(r"^[a-f0-9]{40}$")
 _GATE12B_RUNTIME_VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
@@ -587,19 +598,17 @@ def _validate_mig045_gate12b_proof_contract(value: object) -> dict:
     corpus = value.get("corpus")
     if not isinstance(corpus, list) or corpus != list(MIG045_GATE12B_CORPUS):
         raise CommandPortError("mig045_gate12b_corpus_invalid")
-    runtime_version = value.get("runtime_version")
-    if not isinstance(runtime_version, str) or _GATE12B_RUNTIME_VERSION_RE.fullmatch(runtime_version) is None:
-        raise CommandPortError("mig045_gate12b_runtime_version_invalid")
-    runtime_source_commit = value.get("runtime_source_commit")
-    if not isinstance(runtime_source_commit, str) or _GATE12B_COMMIT_RE.fullmatch(runtime_source_commit) is None:
-        raise CommandPortError("mig045_gate12b_runtime_source_commit_invalid")
-    for field in (
-        "capability_sha256",
-        "effective_policy_sha256",
-        "command_template_sha256",
-        "sql_owner_sha256",
-        "target_binding_sha256",
-    ):
+    static_bindings = {
+        "runtime_version": MIG045_GATE12B_RUNTIME_VERSION,
+        "runtime_source_commit": MIG045_GATE12B_A_TECHNICAL_HEAD,
+        "capability_sha256": MIG045_GATE12B_CAPABILITY_SHA256,
+        "command_template_sha256": MIG045_GATE12B_COMMAND_TEMPLATE_SHA256,
+        "sql_owner_sha256": MIG045_GATE12B_SQL_OWNER_SHA256,
+    }
+    for field, expected in static_bindings.items():
+        if value.get(field) != expected:
+            raise CommandPortError(f"mig045_gate12b_static_binding_mismatch:{field}")
+    for field in ("effective_policy_sha256", "target_binding_sha256"):
         _validate_gate12b_sha256(value.get(field), field)
     return dict(value)
 
@@ -656,6 +665,142 @@ def _validate_gate12b_preflight(proof_contract: dict, value: object) -> dict:
         if value.get(field) != proof_contract[field]:
             raise CommandPortError(f"mig045_gate12b_preflight_binding_mismatch:{field}")
     return dict(value)
+
+
+
+def freeze_mig045_gate12b_production_proof(preflight: object) -> dict:
+    required = {
+        "business_reads",
+        "proof_executed",
+        "runtime_version",
+        "runtime_source_commit",
+        "capability_sha256",
+        "effective_policy_sha256",
+        "command_template_sha256",
+        "sql_owner_sha256",
+        "target_binding_sha256",
+        "resolved_database",
+        "resolved_role",
+        "postgres_profile",
+        "schema",
+        "expected_identity_set_sha256",
+        "corpus",
+    }
+    if not isinstance(preflight, dict) or not required.issubset(preflight):
+        raise CommandPortError("mig045_gate12b_production_preflight_contract_invalid")
+    if type(preflight.get("business_reads")) is not int or preflight["business_reads"] != 0:
+        raise CommandPortError("mig045_gate12b_production_preflight_business_reads_invalid")
+    if preflight.get("proof_executed") is not False:
+        raise CommandPortError("mig045_gate12b_production_preflight_proof_executed_invalid")
+
+    static_bindings = {
+        "runtime_version": MIG045_GATE12B_RUNTIME_VERSION,
+        "runtime_source_commit": MIG045_GATE12B_A_TECHNICAL_HEAD,
+        "capability_sha256": MIG045_GATE12B_CAPABILITY_SHA256,
+        "command_template_sha256": MIG045_GATE12B_COMMAND_TEMPLATE_SHA256,
+        "sql_owner_sha256": MIG045_GATE12B_SQL_OWNER_SHA256,
+        "expected_identity_set_sha256": MIG045_GATE12B_EXPECTED_IDENTITY_SET_SHA256,
+        "corpus": list(MIG045_GATE12B_CORPUS),
+    }
+    for field, expected in static_bindings.items():
+        if preflight.get(field) != expected:
+            raise CommandPortError(f"mig045_gate12b_production_preflight_static_binding_mismatch:{field}")
+
+    target_semantics = {
+        "resolved_database": MIG045_GATE12B_RESOLVED_DATABASE,
+        "resolved_role": MIG045_GATE12B_RESOLVED_ROLE,
+        "postgres_profile": MIG045_GATE12B_POSTGRES_PROFILE,
+        "schema": MIG045_GATE12B_SCHEMA,
+    }
+    for field, expected in target_semantics.items():
+        if preflight.get(field) != expected:
+            raise CommandPortError(f"mig045_gate12b_production_target_mismatch:{field}")
+
+    effective_policy_sha256 = _validate_gate12b_sha256(
+        preflight.get("effective_policy_sha256"), "effective_policy_sha256"
+    )
+    target_binding_sha256 = _validate_gate12b_sha256(
+        preflight.get("target_binding_sha256"), "target_binding_sha256"
+    )
+    proof_contract = {
+        "observation_semantics": MIG045_GATE12B_OBSERVATION_SEMANTICS,
+        "expected_identity_set_sha256": MIG045_GATE12B_EXPECTED_IDENTITY_SET_SHA256,
+        "corpus": list(MIG045_GATE12B_CORPUS),
+        "runtime_version": MIG045_GATE12B_RUNTIME_VERSION,
+        "runtime_source_commit": MIG045_GATE12B_A_TECHNICAL_HEAD,
+        "capability_sha256": MIG045_GATE12B_CAPABILITY_SHA256,
+        "effective_policy_sha256": effective_policy_sha256,
+        "command_template_sha256": MIG045_GATE12B_COMMAND_TEMPLATE_SHA256,
+        "sql_owner_sha256": MIG045_GATE12B_SQL_OWNER_SHA256,
+        "target_binding_sha256": target_binding_sha256,
+    }
+    proof_contract = _validate_mig045_gate12b_proof_contract(proof_contract)
+    proof_contract_sha256 = mig045_gate12b_proof_contract_sha256(proof_contract)
+    proof_id = derive_mig045_gate12b_proof_id(proof_contract_sha256)
+    technical_preflight = {field: preflight[field] for field in sorted(required)}
+    return {
+        "proof_contract": proof_contract,
+        "proof_contract_sha256": proof_contract_sha256,
+        "proof_id": proof_id,
+        "technical_preflight": technical_preflight,
+        "business_reads": 0,
+        "proof_executed": False,
+        "external_action_allowed": False,
+    }
+
+
+def _normalize_mig045_gate12b_runtime_preflight_response(response: object) -> dict:
+    if (
+        not isinstance(response, dict)
+        or response.get("status") != "ok"
+        or response.get("operation") != "gate12b_technical_preflight"
+    ):
+        raise CommandPortError("mig045_gate12b_runtime_preflight_response_invalid")
+    binding = response.get("preflight")
+    provenance = response.get("provenance")
+    if not isinstance(binding, dict) or set(binding) != set(_GATE12B_PREFLIGHT_FIELDS):
+        raise CommandPortError("mig045_gate12b_runtime_preflight_binding_invalid")
+    if not isinstance(provenance, dict):
+        raise CommandPortError("mig045_gate12b_runtime_preflight_provenance_invalid")
+    if type(provenance.get("business_reads")) is not int or provenance["business_reads"] != 0:
+        raise CommandPortError("mig045_gate12b_runtime_preflight_business_reads_invalid")
+    if provenance.get("free_sql") is not False or provenance.get("generic_business_mutation") is not False:
+        raise CommandPortError("mig045_gate12b_runtime_preflight_boundary_invalid")
+    if provenance.get("corpus") != MIG045_GATE12B_CORPUS_IDENTIFIER:
+        raise CommandPortError("mig045_gate12b_runtime_preflight_corpus_mismatch")
+    if provenance.get("corpus_sha256") != MIG045_GATE12B_CORPUS_SHA256:
+        raise CommandPortError("mig045_gate12b_runtime_preflight_corpus_sha256_mismatch")
+
+    return {
+        "business_reads": provenance["business_reads"],
+        "proof_executed": False,
+        "runtime_version": binding.get("runtime_version"),
+        "runtime_source_commit": binding.get("runtime_source_commit"),
+        "capability_sha256": binding.get("capability_sha256"),
+        "effective_policy_sha256": binding.get("effective_policy_sha256"),
+        "command_template_sha256": binding.get("command_template_sha256"),
+        "sql_owner_sha256": binding.get("sql_owner_sha256"),
+        "target_binding_sha256": binding.get("target_binding_sha256"),
+        "resolved_database": provenance.get("resolved_database"),
+        "resolved_role": provenance.get("resolved_role"),
+        "postgres_profile": provenance.get("postgres_profile"),
+        "schema": provenance.get("schema"),
+        "expected_identity_set_sha256": provenance.get("expected_identity_set_sha256"),
+        "corpus": list(MIG045_GATE12B_CORPUS),
+    }
+
+
+def request_mig045_gate12b_production_proof_freeze(
+    request_fn: Callable[[dict], dict] = broker_request,
+) -> dict:
+    try:
+        response = request_fn({"operation": "gate12b_technical_preflight"})
+    except CommandPortError:
+        raise
+    except Exception as exc:
+        raise CommandPortError("mig045_gate12b_runtime_preflight_failed") from exc
+    normalized = _normalize_mig045_gate12b_runtime_preflight_response(response)
+    return freeze_mig045_gate12b_production_proof(normalized)
 
 
 def mig045_gate12b_persisted_result_sha256(wrapper: object) -> str:
@@ -851,14 +996,21 @@ def run_mig045_gate12b_committed_proof_v1(
         raise CommandPortError("mig045_gate12b_proof_id_mismatch")
 
     if preflight_fn is None:
-        raise CommandPortError("mig045_gate12b_preflight_owner_not_bound")
-    try:
-        observed_preflight = preflight_fn()
-    except CommandPortError:
-        raise
-    except Exception as exc:
-        raise CommandPortError("mig045_gate12b_preflight_failed") from exc
-    _validate_gate12b_preflight(contract, observed_preflight)
+        frozen = request_mig045_gate12b_production_proof_freeze(request_fn=request_fn)
+        if (
+            frozen.get("proof_contract") != contract
+            or frozen.get("proof_contract_sha256") != expected_contract_sha
+            or frozen.get("proof_id") != proof_id
+        ):
+            raise CommandPortError("mig045_gate12b_production_freeze_mismatch")
+    else:
+        try:
+            observed_preflight = preflight_fn()
+        except CommandPortError:
+            raise
+        except Exception as exc:
+            raise CommandPortError("mig045_gate12b_preflight_failed") from exc
+        _validate_gate12b_preflight(contract, observed_preflight)
 
     content, payload_sha256 = _gate12b_input_payload(proof_id, expected_contract_sha)
     root = pathlib.Path(
