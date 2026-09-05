@@ -46,6 +46,8 @@ MIG045_GATE12B_TARGET = command_port.MIG045_GATE12B_TARGET
 MIG045_GATE12B_EXPECTED_IDENTITY_SET_SHA256 = command_port.MIG045_GATE12B_EXPECTED_IDENTITY_SET_SHA256
 MIG045_GATE12B_PREFLIGHT_INTENT = "MIG045_GATE12B_TECHNICAL_PREFLIGHT_FREEZE_V1"
 MIG045_GATE12B_PREFLIGHT_CONTEXT = {"target": "mig045-gate12b-technical-preflight-freeze"}
+MIG045_GATE12B_TECHNICAL_MATERIALIZE_INTENT = "MIG045_GATE12B_TECHNICAL_MATERIALIZE_V1"
+MIG045_GATE12B_TECHNICAL_MATERIALIZE_TARGET = "mig045-gate12b-technical-materialize"
 SELF_UPDATE_INTENT = "BRIDGE_SELF_UPDATE"
 SELF_UPDATE_MANIFEST_PATH = ".elan-vps-bridge/bootstrap/runtime-manifest.json"
 SELF_UPDATE_RUNTIME_FILES = ("issue_inbox.py", "bridge_worker.py", "command_port.py")
@@ -164,6 +166,17 @@ def parse_issue_intent(issue: dict) -> dict | None:
             return None
         try:
             command_port.validate_mig045_v1351_artifact_url(context.get("artifact_url"))
+        except command_port.CommandPortError:
+            return None
+        return job
+    if job["intent_code"] == MIG045_GATE12B_TECHNICAL_MATERIALIZE_INTENT:
+        context = job["context"]
+        if not isinstance(context, dict) or set(context) != {"target", "artifact_url"}:
+            return None
+        if context.get("target") != MIG045_GATE12B_TECHNICAL_MATERIALIZE_TARGET:
+            return None
+        try:
+            command_port.validate_mig045_gate12b_technical_artifact_url(context.get("artifact_url"))
         except command_port.CommandPortError:
             return None
         return job
@@ -400,6 +413,15 @@ def _execute_job(job: dict) -> dict:
     if job["intent_code"] == MIG045_V1351_INTENT:
         try:
             payload = command_port.run_mig045_v1351_rollout_and_fresh_read_v1(
+                job["id"],
+                job["context"]["artifact_url"],
+            )
+            return _completed(job, started, {"status": "PASS", **payload})
+        except command_port.CommandPortError as exc:
+            return _failed(job, started, str(exc))
+    if job["intent_code"] == MIG045_GATE12B_TECHNICAL_MATERIALIZE_INTENT:
+        try:
+            payload = command_port.run_mig045_gate12b_technical_materialization_v1(
                 job["id"],
                 job["context"]["artifact_url"],
             )
