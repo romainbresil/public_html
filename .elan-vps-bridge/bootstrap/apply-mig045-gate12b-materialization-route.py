@@ -377,7 +377,7 @@ def run_mig045_gate12b_technical_materialization_v1(
     }
 # END MIG045_GATE12B_TECHNICAL_MATERIALIZATION_V1
 '''
-    COMMAND.write_text(text.rstrip() + block + "\n", encoding="utf-8")
+    COMMAND.write_text(text.rstrip() + block.rstrip() + "\n", encoding="utf-8")
 
 
 def write_manifest() -> str:
