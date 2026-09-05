@@ -14,7 +14,7 @@ if str(BOOTSTRAP) not in sys.path:
 
 import issue_inbox  # noqa: E402
 
-RELEASE_ID = "bridge-mig045-gate12b-production-materialization-route-20260905-v1"
+RELEASE_ID = "bridge-mig045-gate12b-plan-risk-contract-fix-20260905-v1"
 RUNTIME_FILES = ("issue_inbox.py", "bridge_worker.py", "command_port.py")
 
 
