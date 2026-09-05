@@ -246,7 +246,9 @@ class Gate12BProductionFreezeIdentityTests(unittest.TestCase):
         self.assertEqual(command_port.validate_mig045_gate12b_context(context), context)
         drifted = copy.deepcopy(context)
         drifted["proof_contract"]["runtime_source_commit"] = "a" * 40
-        drifted["proof_contract_sha256"] = command_port.mig045_gate12b_proof_contract_sha256(drifted["proof_contract"])
+        drifted["proof_contract_sha256"] = __import__("hashlib").sha256(
+            command_port._gate12b_canonical_bytes(drifted["proof_contract"])
+        ).hexdigest()
         drifted["proof_id"] = command_port.derive_mig045_gate12b_proof_id(drifted["proof_contract_sha256"])
         with self.assertRaisesRegex(command_port.CommandPortError, "runtime_source_commit.*mismatch|static.*mismatch"):
             command_port.validate_mig045_gate12b_context(drifted)
