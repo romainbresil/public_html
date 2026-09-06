@@ -29,25 +29,42 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+      - name: Runtime byte identities
+        run: |
+          sha256sum .elan-vps-bridge/bootstrap/command_port.py
+          sha256sum .elan-vps-bridge/bootstrap/issue_inbox.py
+          sha256sum .elan-vps-bridge/bootstrap/bridge_worker.py
+          sha256sum .elan-vps-bridge/bootstrap/runtime-manifest.json
       - name: Runtime repair contract
         run: python3 .elan-vps-bridge/bootstrap/test_mig045_gate12b_broker_marker_runtime_repair.py -v
-      - name: Recover qualified previous command port for wrapper tests
+      - name: Recover qualified previous runtime
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin f5bd3bb570c482a82604ae6d5d97b9f87c7891cc
           git show f5bd3bb570c482a82604ae6d5d97b9f87c7891cc:.elan-vps-bridge/bootstrap/command_port.py > /tmp/gate12b-previous-command-port.py
+          git show f5bd3bb570c482a82604ae6d5d97b9f87c7891cc:.elan-vps-bridge/bootstrap/runtime-manifest.json > /tmp/gate12b-previous-runtime-manifest.json
           test "$(sha256sum /tmp/gate12b-previous-command-port.py | awk '{print $1}')" = "1172320da0eb1389c21cced7c67ba543c82520e723d3533d136e23540a955003"
-      - name: Existing Bridge non-regression
+      - name: Inherited Bridge non-regression at qualified base
+        run: |
+          set -euo pipefail
+          cp .elan-vps-bridge/bootstrap/command_port.py /tmp/gate12b-new-command-port.py
+          cp .elan-vps-bridge/bootstrap/runtime-manifest.json /tmp/gate12b-new-runtime-manifest.json
+          cp /tmp/gate12b-previous-command-port.py .elan-vps-bridge/bootstrap/command_port.py
+          cp /tmp/gate12b-previous-runtime-manifest.json .elan-vps-bridge/bootstrap/runtime-manifest.json
+          for test_file in .elan-vps-bridge/bootstrap/test_*.py; do
+            if [ "$(basename "$test_file")" = "test_mig045_gate12b_broker_marker_runtime_repair.py" ]; then
+              continue
+            fi
+            python3 "$test_file" -v
+          done
+          cp /tmp/gate12b-new-command-port.py .elan-vps-bridge/bootstrap/command_port.py
+          cp /tmp/gate12b-new-runtime-manifest.json .elan-vps-bridge/bootstrap/runtime-manifest.json
+      - name: Wrapper compile and bounded contract
         env:
           ELAN_BRIDGE_PREVIOUS_COMMAND_PORT: /tmp/gate12b-previous-command-port.py
         run: |
           set -euo pipefail
           python3 -m py_compile .elan-vps-bridge/bootstrap/command_port.py .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/bridge_worker.py
-          python3 -m unittest discover -s .elan-vps-bridge/bootstrap -p 'test_*.py' -v
-      - name: Wrapper compile and bounded contract
-        env:
-          ELAN_BRIDGE_PREVIOUS_COMMAND_PORT: /tmp/gate12b-previous-command-port.py
-        run: |
           python3 - <<'PY'
           import importlib.util, pathlib
           path=pathlib.Path('.elan-vps-bridge/bootstrap/command_port.py')
