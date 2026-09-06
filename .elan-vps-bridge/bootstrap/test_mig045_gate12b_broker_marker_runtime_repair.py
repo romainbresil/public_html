@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import pathlib
 import unittest
 
@@ -9,7 +10,9 @@ ROOT = pathlib.Path(__file__).resolve().parent
 COMMAND = ROOT / "command_port.py"
 ISSUE = ROOT / "issue_inbox.py"
 WORKER = ROOT / "bridge_worker.py"
+MANIFEST = ROOT / "runtime-manifest.json"
 
+RELEASE_ID = "bridge-mig045-gate12b-broker-marker-runtime-repair-20260906-v1"
 EXPECTED_ISSUE_SHA256 = "da64818986b268ac961dcac2a07669853aef0ad99619a4ae34b17e5c9bf64453"
 EXPECTED_WORKER_SHA256 = "7d7f7839cf0c5931bf8af29c78adef59a4e1a0bab10dfb064150942975635cd4"
 
@@ -22,6 +25,13 @@ class Gate12BBrokerMarkerRuntimeRepairTest(unittest.TestCase):
     def test_only_command_port_runtime_surface_needs_change(self) -> None:
         self.assertEqual(sha(ISSUE), EXPECTED_ISSUE_SHA256)
         self.assertEqual(sha(WORKER), EXPECTED_WORKER_SHA256)
+
+    def test_runtime_manifest_matches_exact_new_runtime_bytes(self) -> None:
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["release_id"], RELEASE_ID)
+        self.assertEqual(manifest["schema_version"], "1.0")
+        for name in ("issue_inbox.py", "bridge_worker.py", "command_port.py"):
+            self.assertEqual(manifest["files"][name]["sha256"], sha(ROOT / name), name)
 
     def test_command_port_layers_on_qualified_previous_runtime(self) -> None:
         text = COMMAND.read_text(encoding="utf-8")
@@ -49,4 +59,4 @@ class Gate12BBrokerMarkerRuntimeRepairTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
