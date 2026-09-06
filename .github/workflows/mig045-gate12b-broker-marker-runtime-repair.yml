@@ -30,12 +30,37 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - name: Runtime repair contract
-        run: python3 -m unittest .elan-vps-bridge/bootstrap/test_mig045_gate12b_broker_marker_runtime_repair.py -v
+        run: python3 .elan-vps-bridge/bootstrap/test_mig045_gate12b_broker_marker_runtime_repair.py -v
+      - name: Recover qualified previous command port for wrapper tests
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin f5bd3bb570c482a82604ae6d5d97b9f87c7891cc
+          git show f5bd3bb570c482a82604ae6d5d97b9f87c7891cc:.elan-vps-bridge/bootstrap/command_port.py > /tmp/gate12b-previous-command-port.py
+          test "$(sha256sum /tmp/gate12b-previous-command-port.py | awk '{print $1}')" = "1172320da0eb1389c21cced7c67ba543c82520e723d3533d136e23540a955003"
       - name: Existing Bridge non-regression
+        env:
+          ELAN_BRIDGE_PREVIOUS_COMMAND_PORT: /tmp/gate12b-previous-command-port.py
         run: |
           set -euo pipefail
           python3 -m py_compile .elan-vps-bridge/bootstrap/command_port.py .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/bridge_worker.py
           python3 -m unittest discover -s .elan-vps-bridge/bootstrap -p 'test_*.py' -v
+      - name: Wrapper compile and bounded contract
+        env:
+          ELAN_BRIDGE_PREVIOUS_COMMAND_PORT: /tmp/gate12b-previous-command-port.py
+        run: |
+          python3 - <<'PY'
+          import importlib.util, pathlib
+          path=pathlib.Path('.elan-vps-bridge/bootstrap/command_port.py')
+          spec=importlib.util.spec_from_file_location('gate12b_runtime_repair',path)
+          module=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          transient=module._transient_broker_wrapper_text()
+          compile(transient,'<gate12b-transient-broker>','exec')
+          assert len(transient.encode('utf-8')) < 180000
+          assert 'schema_migration_exact_membership_v1' in transient
+          assert 'commit_mig045_gate12b_proof_v1' not in transient
+          print('TRANSIENT_BROKER_WRAPPER_BYTES='+str(len(transient.encode('utf-8'))))
+          PY
       - name: Manifest exactness
         run: |
           python3 - <<'PY'
