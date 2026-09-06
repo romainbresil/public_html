@@ -1,0 +1,49 @@
+name: MIG045 Gate12B broker marker runtime repair
+
+on:
+  push:
+    branches:
+      - en033-m1-mig045-gate12b-broker-marker-runtime-repair-2026-09-06
+    paths:
+      - '.github/workflows/mig045-gate12b-broker-marker-runtime-repair.yml'
+      - '.elan-vps-bridge/bootstrap/command_port.py'
+      - '.elan-vps-bridge/bootstrap/issue_inbox.py'
+      - '.elan-vps-bridge/bootstrap/bridge_worker.py'
+      - '.elan-vps-bridge/bootstrap/runtime-manifest.json'
+      - '.elan-vps-bridge/bootstrap/test_mig045_gate12b_broker_marker_runtime_repair.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mig045-gate12b-broker-marker-runtime-repair-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Runtime repair contract
+        run: python3 -m unittest .elan-vps-bridge/bootstrap/test_mig045_gate12b_broker_marker_runtime_repair.py -v
+      - name: Existing Bridge non-regression
+        run: |
+          set -euo pipefail
+          python3 -m py_compile .elan-vps-bridge/bootstrap/command_port.py .elan-vps-bridge/bootstrap/issue_inbox.py .elan-vps-bridge/bootstrap/bridge_worker.py
+          python3 -m unittest discover -s .elan-vps-bridge/bootstrap -p 'test_*.py' -v
+      - name: Manifest exactness
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path('.elan-vps-bridge/bootstrap')
+          manifest=json.loads((root/'runtime-manifest.json').read_text())
+          assert manifest['release_id']=='bridge-mig045-gate12b-broker-marker-runtime-repair-20260906-v1'
+          for name,spec in manifest['files'].items():
+              assert hashlib.sha256((pathlib.Path(spec['path'])).read_bytes()).hexdigest()==spec['sha256']
+          print('MIG045_GATE12B_BROKER_MARKER_RUNTIME_REPAIR=PASS')
+          PY
