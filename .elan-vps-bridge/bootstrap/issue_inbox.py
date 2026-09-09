@@ -57,10 +57,10 @@ _SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 _RELEASE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 
 
-def _issues_url() -> str:
+def _issues_url(page: int = 1) -> str:
     return (
         f"https://api.github.com/repos/{CONTROL_REPO}/issues"
-        "?state=open&sort=created&direction=asc&per_page=30&labels=elan-cms-chatgpt"
+        f"?state=open&sort=created&direction=asc&per_page=100&labels=elan-cms-chatgpt&page={page}"
     )
 
 
@@ -132,6 +132,12 @@ def parse_issue_intent(issue: dict) -> dict | None:
         "context": intent["context"],
         "read_token": secrets.token_urlsafe(32),
     }
+    if job["intent_code"] == "EN_TECHNICAL_MAILBOX_V1":
+        try:
+            command_port.mailbox_validate_context(job["context"])
+        except (ValueError, TypeError):
+            return None
+        return job
     if job["intent_code"] == SPRINT_PRO_READ_INTENT:
         if job["context"] == {"target": "en-core"}:
             return job
@@ -367,6 +373,19 @@ def exec_updated_runtime(app_root: pathlib.Path | None = None) -> None:
 
 def _execute_job(job: dict) -> dict:
     started = bridge_worker.now_iso()
+    if job["intent_code"] == "EN_TECHNICAL_MAILBOX_V1":
+        try:
+            payload = command_port.mailbox_execute(
+                job["context"], issue_number=int(job["id"].removeprefix("gh-issue-")),
+                state_root=pathlib.Path(os.environ.get("ELAN_BRIDGE_STATE_ROOT", "/var/lib/elan-web-vps-bridge")),
+                request_fn=command_port.broker_request,
+            )
+            return _completed(job, started, payload)
+        except (ValueError, OSError, TimeoutError, command_port.CommandPortError) as exc:
+            code = str(exc)
+            if not re.fullmatch(r"[A-Za-z0-9_:-]{1,120}", code):
+                code = "mailbox_operation_unavailable"
+            return _failed(job, started, code)
     if job["intent_code"] == SPRINT_PRO_READ_INTENT:
         try:
             if job["context"] == SPRINT_PRO_SCHEMA_MIGRATION_EVIDENCE_CONTEXT:
@@ -511,15 +530,100 @@ def process_issue(state_root: pathlib.Path, issue: dict) -> str:
     result["source_sha"] = source_sha
     result["source_issue_number"] = issue["number"]
     result["source_issue_url"] = issue.get("html_url", "")
+    result["delivery_pending"] = True
     bridge_worker.store_result(state_root, result)
-    bridge_worker.post_result(result)
+    repost_pending_result(state_root, job["id"])
     if result.get("state") == "COMPLETED" and result.get("result", {}).get("restart_after_post") is True:
         exec_updated_runtime()
     return result["state"]
 
 
+def repost_pending_result(state_root: pathlib.Path, job_id: str) -> bool:
+    if not re.fullmatch(r"gh-issue-[1-9][0-9]*", job_id):
+        return False
+    result_path = pathlib.Path(state_root) / "results" / f"{job_id}.json"
+    delivered = pathlib.Path(state_root) / "results" / f"{job_id}.delivered"
+    if not result_path.is_file() or result_path.is_symlink():
+        return False
+    result = json.loads(result_path.read_text())
+    if result.get("delivery_pending") is not True:
+        return False
+    posted = False
+    if not delivered.exists():
+        bridge_worker.post_result(result)
+        _atomic_write(delivered, b"delivered\n", 0o600)
+        posted = True
+    mirrored = delivered.with_suffix(".mirrored")
+    if result.get("intent_code") == "EN_TECHNICAL_MAILBOX_V1" and not mirrored.exists():
+        try:
+            command_port.mailbox_publish_receipt(result, delivered=True, request_fn=command_port.broker_request)
+            _atomic_write(mirrored, b"mirrored\n", 0o600)
+        except (OSError, ValueError, command_port.CommandPortError):
+            pass
+    if result.get("state") == "COMPLETED" and result.get("result", {}).get("restart_after_post") is True:
+        exec_updated_runtime()
+    return posted
+
+
+def deliver_pending_results(state_root: pathlib.Path) -> None:
+    # Bound delivery work and rotate even on failure; no old result can starve a new one.
+    root = pathlib.Path(state_root)
+    cursor = root / "mailbox-delivery-cursor.json"
+    previous = json.loads(cursor.read_text()).get("last", "") if cursor.exists() else ""
+    paths = sorted((root / "results").glob("gh-issue-*.json"))
+    paths = [p for p in paths if p.stem > previous] + [p for p in paths if p.stem <= previous]
+    attempts = 0
+    for path in paths:
+        if path.is_symlink():
+            continue
+        try:
+            result = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        if result.get("delivery_pending") is not True:
+            continue
+        done = path.with_suffix(".delivered").exists()
+        mirrored = path.with_suffix(".mirrored").exists()
+        if done and (mirrored or result.get("intent_code") != "EN_TECHNICAL_MAILBOX_V1"):
+            continue
+        _atomic_write(cursor, json.dumps({"last": path.stem}).encode(), 0o600)
+        try:
+            repost_pending_result(root, path.stem)
+        except (OSError, ValueError, command_port.CommandPortError):
+            pass
+        attempts += 1
+        if attempts >= 2:
+            break
+
+
+def recover_claimed_issue(state_root: pathlib.Path, issue: dict, job: dict) -> None:
+    if job["intent_code"] != "EN_TECHNICAL_MAILBOX_V1":
+        return
+    result_path = pathlib.Path(state_root) / "results" / f"{job['id']}.json"
+    if result_path.exists():
+        return
+    claim = json.loads(bridge_worker._claim_path(state_root, job["id"]).read_text())
+    source = json.dumps({"number": issue["number"], "title": issue["title"],
+                         "body": issue["body"], "author": issue["user"]["login"]},
+                        ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    if claim.get("source_sha") != hashlib.sha256(source).hexdigest():
+        raise ValueError("mailbox_claim_source_changed")
+    # Recovery dispatch never starts an install or a procedure lacking a journal.
+    payload = command_port.mailbox_recover(job["context"],
+        issue_number=issue["number"], state_root=state_root,
+        request_fn=command_port.broker_request)
+    result = _completed(job, bridge_worker.now_iso(), payload)
+    result["delivery_pending"] = True
+    bridge_worker.store_result(state_root, result)
+
+
 def poll_issue_once(state_root: pathlib.Path) -> list[tuple[str, str]]:
-    raw = _urlopen_bytes(_issues_url(), timeout=15)
+    deliver_pending_results(state_root)
+    cursor = pathlib.Path(state_root) / "mailbox-poll-page.json"
+    page = json.loads(cursor.read_text())["page"] if cursor.exists() else 1
+    if type(page) is not int or not 1 <= page <= 1_000_000:
+        raise ValueError("mailbox_poll_cursor_invalid")
+    raw = _urlopen_bytes(_issues_url(page), timeout=15)
     issues = json.loads(raw.decode("utf-8"))
     if not isinstance(issues, list):
         raise ValueError("invalid_issues_response")
@@ -528,13 +632,17 @@ def poll_issue_once(state_root: pathlib.Path) -> list[tuple[str, str]]:
         if job is None:
             continue
         job_id = job["id"]
-        if (
-            bridge_worker._claim_path(state_root, job_id).exists()
-            and _gate12b_claim_blocks_retry(state_root, job)
-        ):
+        if (bridge_worker._claim_path(state_root, job_id).exists()
+                and _gate12b_claim_blocks_retry(state_root, job)):
+            try:
+                recover_claimed_issue(state_root, issue, job)
+            except (OSError, ValueError, command_port.CommandPortError):
+                pass
             continue
         status = process_issue(state_root, issue)
         return [(job_id, status)]
+    next_page = page + 1 if len(issues) == 100 else 1
+    _atomic_write(cursor, json.dumps({"page": next_page}).encode(), 0o600)
     return []
 
 
