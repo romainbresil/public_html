@@ -491,7 +491,7 @@ def mailbox_execute(context,*,issue_number,state_root,request_fn,host_fn=mailbox
         return receipt
 
 
-_MB_STATES = {'accepted','OBSERVED','UNAVAILABLE','queued','running','cancelling','succeeded','success','failed_rolled_back','failed_critical','cancelled','interrupted','interrupted_not_executed','interrupted_ambiguous','activation_launched','activation_succeeded','activation_failed','observation_required','prepare_outcome_unknown','FAIL_CLOSED','UNKNOWN','INSTALL_PREPARED','INSTALL_START_REQUESTED','ACTIVATION_REQUESTED','host_update_pending','host_update_succeeded','host_update_failed_rolled_back','host_update_failed_critical'}
+_MB_STATES = {'accepted','OBSERVED','UNAVAILABLE','queued','running','cancelling','succeeded','success','failed_rolled_back','failed_critical','failed_unarmed','cancelled','interrupted','interrupted_not_executed','interrupted_ambiguous','activation_launched','activation_succeeded','activation_failed','observation_required','prepare_outcome_unknown','FAIL_CLOSED','UNKNOWN','INSTALL_PREPARED','INSTALL_START_REQUESTED','ACTIVATION_REQUESTED','host_update_pending','host_update_succeeded','host_update_failed_rolled_back','host_update_failed_critical'}
 
 
 def _mb_public_fields(value, allowed):
