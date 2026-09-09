@@ -484,25 +484,8 @@ def _execute_job(job: dict) -> dict:
 
 
 def _gate12b_claim_blocks_retry(state_root: pathlib.Path, job: dict) -> bool:
-    if job.get("intent_code") != MIG045_GATE12B_INTENT:
-        return True
-    result_path = pathlib.Path(state_root) / "results" / f"{job['id']}.json"
-    if not result_path.is_file():
-        return False
-    try:
-        stored = json.loads(result_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        return False
-    return (
-        isinstance(stored, dict)
-        and stored.get("id") == job.get("id")
-        and stored.get("intent_code") == MIG045_GATE12B_INTENT
-        and stored.get("state") == "COMPLETED"
-        and isinstance(stored.get("result"), dict)
-        and stored["result"].get("status") == "PASS"
-        and isinstance(stored.get("context"), dict)
-        and stored["context"].get("proof_id") == job["context"].get("proof_id")
-    )
+    # Delivery migration never authorizes command replay.
+    return True
 
 
 def process_issue(state_root: pathlib.Path, issue: dict) -> str:
@@ -533,67 +516,31 @@ def process_issue(state_root: pathlib.Path, issue: dict) -> str:
     result["delivery_pending"] = True
     bridge_worker.store_result(state_root, result)
     repost_pending_result(state_root, job["id"])
-    if result.get("state") == "COMPLETED" and result.get("result", {}).get("restart_after_post") is True:
-        exec_updated_runtime()
     return result["state"]
 
 
 def repost_pending_result(state_root: pathlib.Path, job_id: str) -> bool:
-    if not re.fullmatch(r"gh-issue-[1-9][0-9]*", job_id):
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", job_id):
         return False
     result_path = pathlib.Path(state_root) / "results" / f"{job_id}.json"
-    delivered = pathlib.Path(state_root) / "results" / f"{job_id}.delivered"
     if not result_path.is_file() or result_path.is_symlink():
         return False
     result = json.loads(result_path.read_text())
-    if result.get("delivery_pending") is not True:
-        return False
-    posted = False
-    if not delivered.exists():
-        bridge_worker.post_result(result)
-        _atomic_write(delivered, b"delivered\n", 0o600)
-        posted = True
-    mirrored = delivered.with_suffix(".mirrored")
-    if result.get("intent_code") == "EN_TECHNICAL_MAILBOX_V1" and not mirrored.exists():
-        try:
-            command_port.mailbox_publish_receipt(result, delivered=True, request_fn=command_port.broker_request)
-            _atomic_write(mirrored, b"mirrored\n", 0o600)
-        except (OSError, ValueError, command_port.CommandPortError):
-            pass
-    if result.get("state") == "COMPLETED" and result.get("result", {}).get("restart_after_post") is True:
+    if not isinstance(result, dict) or result.get("id") != job_id:
+        raise ValueError("mailbox_result_binding_invalid")
+    published = command_port.mailbox_deliver_receipt(result, state_root=state_root, request_fn=command_port.broker_request)
+    if (published and not result_path.with_suffix(".delivered").exists()
+            and result.get("state") == "COMPLETED" and result.get("result", {}).get("restart_after_post") is True):
         exec_updated_runtime()
-    return posted
+    return published
 
 
 def deliver_pending_results(state_root: pathlib.Path) -> None:
-    # Bound delivery work and rotate even on failure; no old result can starve a new one.
-    root = pathlib.Path(state_root)
-    cursor = root / "mailbox-delivery-cursor.json"
-    previous = json.loads(cursor.read_text()).get("last", "") if cursor.exists() else ""
-    paths = sorted((root / "results").glob("gh-issue-*.json"))
-    paths = [p for p in paths if p.stem > previous] + [p for p in paths if p.stem <= previous]
-    attempts = 0
-    for path in paths:
-        if path.is_symlink():
-            continue
+    for job_id in command_port.mailbox_delivery_candidates(state_root):
         try:
-            result = json.loads(path.read_text())
-        except (OSError, ValueError):
-            continue
-        if result.get("delivery_pending") is not True:
-            continue
-        done = path.with_suffix(".delivered").exists()
-        mirrored = path.with_suffix(".mirrored").exists()
-        if done and (mirrored or result.get("intent_code") != "EN_TECHNICAL_MAILBOX_V1"):
-            continue
-        _atomic_write(cursor, json.dumps({"last": path.stem}).encode(), 0o600)
-        try:
-            repost_pending_result(root, path.stem)
+            repost_pending_result(state_root, job_id)
         except (OSError, ValueError, command_port.CommandPortError):
             pass
-        attempts += 1
-        if attempts >= 2:
-            break
 
 
 def recover_claimed_issue(state_root: pathlib.Path, issue: dict, job: dict) -> None:

@@ -535,13 +535,78 @@ def mailbox_recover(context,*,issue_number,state_root,request_fn,host_fn=mailbox
     return mailbox_execute(c,issue_number=issue_number,state_root=state_root,request_fn=request_fn,host_fn=host_fn)
 
 
-def mailbox_publish_receipt(result, *, delivered, request_fn):
-    if result.get('intent_code')!='EN_TECHNICAL_MAILBOX_V1':return None
-    c=mailbox_validate_context(result['context'])
+def mailbox_publish_receipt(result, *, historical_netlify_acknowledged=False, request_fn):
+    """Stage a v2 public receipt; this publication never submits a Netlify form."""
+    job_id=result.get('id')
+    if not isinstance(job_id,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,79}',job_id):raise ValueError('mailbox_result_id_invalid')
+    intent=result.get('intent_code')
+    if not isinstance(intent,str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,119}',intent):intent='LEGACY_UNKNOWN'
+    state=result.get('state')
+    if state not in ('COMPLETED','FAILED'):state='UNKNOWN'
     payload=result.get('result',{})
-    # Build from our typed output contract; exclude context.payload and read_token.
-    fields={'status','plan_id','run_id','install_run_id','source_commit','artifact_sha256','procedure_sha256','policy_hash','capability_hash','started_at','finished_at','issue_number','request_id','schema','release_id','error','activation_status','ready_sha256','manifest_sha256','update_id'}
-    public_payload=_mb_public_fields(payload, fields)
-    record={'schema':'mailbox-public-receipt-v1','job_id':result['id'],'project_id':c['project_id'],'mission_id':c['mission_id'],'work_id':c['work_id'],'request_id':c['request_id'],'operation':c['operation'],'netlify_delivery_acknowledged':bool(delivered),'result':public_payload}
+    if not isinstance(payload,dict):payload={}
+    record={'schema':'mailbox-public-receipt-v2','job_id':job_id,'intent_code':intent,'state':state,
+            'delivery_channel':'BROKER_ARTIFACT','historical_netlify_acknowledged':bool(historical_netlify_acknowledged)}
+    if intent=='EN_TECHNICAL_MAILBOX_V1':
+        c=mailbox_validate_context(result['context'])
+        fields={'status','plan_id','run_id','install_run_id','source_commit','artifact_sha256','procedure_sha256','policy_hash','capability_hash','started_at','finished_at','issue_number','request_id','schema','release_id','error','activation_status','ready_sha256','manifest_sha256','update_id'}
+        public_payload=_mb_public_fields(payload,fields)
+        record.update({k:c[k] for k in ('project_id','mission_id','work_id','request_id','operation')})
+    else:
+        # Legacy payloads can contain raw commands, tokens and personal data.
+        allowed_states={'PASS','FAIL','HEALTHY','DEGRADED','APPLIED','ALREADY_CURRENT','UNAVAILABLE'}
+        status=payload.get('status')
+        public_payload={'status':status if isinstance(status,str) and status in allowed_states else 'UNKNOWN'}
+        for key in ('manifest_sha256','source_commit','release_id'):
+            if key in payload:
+                try:public_payload.update(_mb_public_fields(payload,{key}))
+                except ValueError:pass
+        code=payload.get('operation_exit_code')
+        if type(code) is int and -255<=code<=255:public_payload['operation_exit_code']=code
+    record['result']=public_payload
     raw=json.dumps(record,sort_keys=True,separators=(',',':'))
-    return request_fn({'operation':'stage_text','content':raw,'expected_sha256':hashlib.sha256(raw.encode()).hexdigest(),'media_type':'application/json','label':'mailbox-receipt-'+result['id']+('-delivered' if delivered else '-pending')})
+    return request_fn({'operation':'stage_text','content':raw,'expected_sha256':hashlib.sha256(raw.encode()).hexdigest(),'media_type':'application/json','label':'mailbox-receipt-v2-'+job_id})
+
+
+def mailbox_deliver_receipt(result, *, state_root, request_fn):
+    """Durable broker acknowledgment distinct from historical Forms markers."""
+    job_id=result.get('id')
+    if not isinstance(job_id,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,79}',job_id):raise ValueError('mailbox_result_id_invalid')
+    root=Path(state_root)/'results';root.mkdir(parents=True,exist_ok=True)
+    if root.is_symlink():raise ValueError('mailbox_state_unsafe')
+    marker=root/(job_id+'.broker-receipt-v2')
+    fd=os.open(root/(job_id+'.broker-receipt-v2.lock'),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+    with os.fdopen(fd,'a+') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        if marker.is_symlink():raise ValueError('mailbox_state_unsafe')
+        if marker.exists():return False
+        expected={}
+        def stage(request):
+            expected.update(sha256=request['expected_sha256'],size_bytes=len(request['content'].encode()),media_type=request['media_type'])
+            return request_fn(request)
+        response=mailbox_publish_receipt(result,historical_netlify_acknowledged=(root/(job_id+'.delivered')).is_file(),request_fn=stage)
+        artifact=response.get('artifact',response) if isinstance(response,dict) else {}
+        artifact_id=artifact.get('artifact_id') if isinstance(artifact,dict) else None
+        try:uuid.UUID(artifact_id)
+        except (ValueError,TypeError,AttributeError):raise ValueError('mailbox_broker_receipt_invalid')
+        if any(artifact.get(k)!=v for k,v in expected.items()):raise ValueError('mailbox_broker_receipt_binding_invalid')
+        _mb_write(marker,{'schema':'mailbox-broker-delivery-v2','artifact_id':artifact_id,**expected})
+    return True
+
+
+def mailbox_delivery_candidates(state_root):
+    """Two rotating receipt attempts shared by issue and encrypted inboxes."""
+    root=Path(state_root)
+    cursor=root/'mailbox-delivery-cursor.json'
+    previous=json.loads(cursor.read_text()).get('last','') if cursor.exists() else ''
+    if not isinstance(previous,str):raise ValueError('mailbox_delivery_cursor_invalid')
+    paths=sorted((root/'results').glob('*.json'))
+    paths=[p for p in paths if p.stem>previous]+[p for p in paths if p.stem<=previous]
+    attempts=0
+    for path in paths:
+        if path.is_symlink() or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,79}',path.stem):continue
+        if path.with_suffix('.broker-receipt-v2').exists():continue
+        _mb_write(cursor,{'last':path.stem})
+        attempts+=1
+        yield path.stem
+        if attempts>=2:return

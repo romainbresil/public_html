@@ -20,10 +20,7 @@ _ALLOWED_INTENTS = {"SYSTEM_REFRESH", "DIAGNOSTIC_REQ", "STATE_TOGGLE"}
 _ALLOWED_TARGETS = {"elan-bridge"}
 _ALLOWED_STATES = {"active", "inactive"}
 DEFAULT_OUTPUT_LIMIT = 65536
-RETURN_ENDPOINT = os.environ.get(
-    "ELAN_BRIDGE_RETURN_ENDPOINT",
-    "https://romainbecquart.com/__elan-vps-bridge-return.html",
-)
+
 
 
 class AlreadyClaimed(RuntimeError):
@@ -231,30 +228,7 @@ def store_result(state_root: pathlib.Path, result: dict) -> pathlib.Path:
 
 
 def post_result(result: dict) -> None:
-    payload = result.get("result", {})
-    fields = {
-        "form-name": "elan-vps-bridge-return",
-        "bot-field": "",
-        "job_id": result["id"],
-        "read_token": result["read_token"],
-        "state": result["state"],
-        "exit_code": str(payload.get("operation_exit_code", "0")),
-        "stdout": json.dumps(payload, ensure_ascii=False, sort_keys=True),
-        "stderr": str(payload.get("stderr", "")),
-        "finished_at": result["finished_at"],
-    }
-    request = urllib.request.Request(
-        RETURN_ENDPOINT,
-        data=urllib.parse.urlencode(fields).encode("utf-8"),
-        method="POST",
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "elan-web-vps-bridge/2",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=15) as response:
-        if response.status >= 400:
-            raise RuntimeError("return_post_failed")
+    raise ValueError('forms_transport_disabled')
 
 
 def load_result_for_token(
@@ -318,8 +292,10 @@ def process_envelope(
         return "ALREADY_CLAIMED"
     result = execute_intent(job)
     result["source_sha"] = source_sha
+    result["delivery_pending"] = True
     store_result(state_root, result)
-    post_result(result)
+    import command_port
+    command_port.mailbox_deliver_receipt(result, state_root=state_root, request_fn=command_port.broker_request)
     return result["state"]
 
 
@@ -377,6 +353,15 @@ def parse_latest_pointer(raw: bytes) -> str | None:
 def poll_once(
     state_root: pathlib.Path, cert_path: pathlib.Path, key_path: pathlib.Path
 ) -> list[tuple[str, str]]:
+    import command_port
+    for job_id in command_port.mailbox_delivery_candidates(state_root):
+        try:
+            result = json.loads((state_root / "results" / f"{job_id}.json").read_text())
+            if not isinstance(result, dict) or result.get("id") != job_id:
+                raise ValueError("mailbox_result_binding_invalid")
+            command_port.mailbox_deliver_receipt(result, state_root=state_root, request_fn=command_port.broker_request)
+        except (OSError, ValueError, command_port.CommandPortError):
+            pass
     latest_url = _raw_url(f"{CONTROL_BASE_PATH}/latest.txt")
     name = parse_latest_pointer(_urlopen_bytes(latest_url))
     if name is None:

@@ -2,17 +2,17 @@
   "files": {
     "bridge_worker.py": {
       "path": ".elan-vps-bridge/bootstrap/bridge_worker.py",
-      "sha256": "7d7f7839cf0c5931bf8af29c78adef59a4e1a0bab10dfb064150942975635cd4"
+      "sha256": "683075bcc1ce7f0f41d9ca584fb518a0cb36da0fa03e06f5a4c2e5b1f406ba85"
     },
     "command_port.py": {
       "path": ".elan-vps-bridge/bootstrap/command_port.py",
-      "sha256": "ad12f263e959c4ce3c414931ea484a8863a4a87594e54c1208a64abc234abbbc"
+      "sha256": "fdfff47e2453e6b4e3424a3e23ae499923467cee61a135792d29f1c9eb8b06b8"
     },
     "issue_inbox.py": {
       "path": ".elan-vps-bridge/bootstrap/issue_inbox.py",
-      "sha256": "b6bb3f5bd62db9a90defc6397639e4bf909caec40d0dbb13b5533b58df0aab10"
+      "sha256": "846445ca2237da1846d2a1734f2858829d4ef6adfab89cbc9fe5589e88517b43"
     }
   },
-  "release_id": "bridge-transversal-mailbox-20260909-v2",
+  "release_id": "bridge-transversal-mailbox-20260909-v3-noforms",
   "schema_version": "1.0"
 }
