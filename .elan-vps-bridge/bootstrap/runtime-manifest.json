@@ -6,13 +6,13 @@
     },
     "command_port.py": {
       "path": ".elan-vps-bridge/bootstrap/command_port.py",
-      "sha256": "9846faf2c9d6c392f34b54df69ad6f4095e0a076aa34531a3177730bf4a69cc5"
+      "sha256": "ad12f263e959c4ce3c414931ea484a8863a4a87594e54c1208a64abc234abbbc"
     },
     "issue_inbox.py": {
       "path": ".elan-vps-bridge/bootstrap/issue_inbox.py",
       "sha256": "b6bb3f5bd62db9a90defc6397639e4bf909caec40d0dbb13b5533b58df0aab10"
     }
   },
-  "release_id": "bridge-transversal-mailbox-20260909-v1",
+  "release_id": "bridge-transversal-mailbox-20260909-v2",
   "schema_version": "1.0"
 }

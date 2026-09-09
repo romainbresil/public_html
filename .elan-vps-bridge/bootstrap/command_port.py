@@ -499,8 +499,8 @@ def _mb_public_fields(value, allowed):
     for k in allowed:
         if k not in value:continue
         v=value[k]
-        if v is None and k in {'started_at','finished_at','run_id','install_run_id','activation_status','ready_sha256','manifest_sha256','update_id'}:output[k]=None;continue
-        if k in {'status','activation_status','ready_sha256','manifest_sha256','update_id'}:
+        if v is None and k in {'started_at','finished_at','run_id','install_run_id','activation_status'}:output[k]=None;continue
+        if k in {'status','activation_status'}:
             if not isinstance(v,str) or v not in _MB_STATES:raise ValueError('mailbox_public_status_invalid')
         elif k=='issue_number':
             if type(v) is not int or v<1:raise ValueError('mailbox_public_issue_invalid')
